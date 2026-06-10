@@ -18,6 +18,12 @@ router.post(
   transactionController.validatePromo
 );
 
+// Get recent completed transactions
+router.get(
+  "/recent",
+  transactionController.getRecentCompletedTx
+);
+
 // Get transaction by ID
 router.get(
   "/:id",

@@ -119,3 +119,16 @@ export const payTx = async (req: Request, res: Response, next: NextFunction): Pr
     next(error);
   }
 };
+
+/**
+ * Handle fetching recent completed transactions
+ */
+export const getRecentCompletedTx = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+  try {
+    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
+    const transactions = await transactionService.getRecentCompletedTransactions(limit);
+    res.json(transactions);
+  } catch (error) {
+    next(error);
+  }
+};

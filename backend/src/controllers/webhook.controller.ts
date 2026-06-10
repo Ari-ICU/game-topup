@@ -49,7 +49,7 @@ export const handleBakongWebhook = async (
         });
       }
 
-      const rawBody = JSON.stringify(req.body);
+      const rawBody = (req as any).rawBody || JSON.stringify(req.body);
       const isValid = verifyBakongSignature(rawBody, signature, webhookSecret);
 
       if (!isValid) {

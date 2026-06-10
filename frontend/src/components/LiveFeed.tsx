@@ -1,10 +1,20 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Zap } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
 
-const recentOrders = [
+interface OrderItem {
+  id?: string;
+  user: string;
+  game: string;
+  item: string;
+  time: string;
+}
+
+// Fallback mock data shown before the API responds or on errors
+const MOCK_ORDERS: OrderItem[] = [
   { user: "Sokha***", game: "Mobile Legends", item: "706 Diamonds", time: "2m ago" },
   { user: "Dara***", game: "PUBG Mobile", item: "660 UC", time: "4m ago" },
   { user: "Ratha***", game: "Free Fire", item: "520 Diamonds", time: "6m ago" },
@@ -17,10 +27,57 @@ const recentOrders = [
   { user: "Kosal***", game: "PUBG Mobile", item: "325 UC", time: "20m ago" },
 ];
 
-// Duplicate for seamless loop
-const items = [...recentOrders, ...recentOrders];
-
 export default function LiveFeed() {
+  const { t } = useLanguage();
+  const [items, setItems] = useState<OrderItem[]>([...MOCK_ORDERS, ...MOCK_ORDERS]);
+
+  useEffect(() => {
+    const formatRelativeTime = (dateString: string): string => {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMins / 60);
+      const diffDays = Math.floor(diffHours / 24);
+
+      if (diffMins < 1) return t.liveFeed.justNow;
+      if (diffMins < 60) return `${diffMins}${t.liveFeed.minsAgo}`;
+      if (diffHours < 24) return `${diffHours}${t.liveFeed.hoursAgo}`;
+      return `${diffDays}${t.liveFeed.daysAgo}`;
+    };
+
+    const fetchRecentOrders = async () => {
+      try {
+        const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001";
+        const res = await fetch(`${backendUrl}/api/transactions/recent`);
+        if (!res.ok) throw new Error("Failed to fetch");
+        const data = await res.json();
+
+        if (Array.isArray(data) && data.length > 0) {
+          const formatted: OrderItem[] = data.map((order: any) => ({
+            id: order.id,
+            user: order.user,
+            game: order.game === "Game" ? t.liveFeed.fallbackGame : order.game,
+            item: order.item === "Package" ? t.liveFeed.fallbackItem : order.item,
+            time: formatRelativeTime(order.time),
+          }));
+          setItems([...formatted, ...formatted]);
+        } else {
+          // No completed orders yet — keep mock data
+          setItems([...MOCK_ORDERS, ...MOCK_ORDERS]);
+        }
+      } catch {
+        // Network error — keep mock data silently
+        setItems([...MOCK_ORDERS, ...MOCK_ORDERS]);
+      }
+    };
+
+    fetchRecentOrders();
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchRecentOrders, 30000);
+    return () => clearInterval(interval);
+  }, [t]);
+
   return (
     <div className="py-4 border-y border-[#1d2438]/40 bg-[#080b11]/80 overflow-hidden">
       <div className="flex items-center">
@@ -31,7 +88,7 @@ export default function LiveFeed() {
             <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400" />
           </span>
           <span className="text-[10px] font-black text-white uppercase tracking-widest whitespace-nowrap">
-            Live Orders
+            {t.liveFeed.title}
           </span>
         </div>
 
@@ -60,13 +117,13 @@ export default function LiveFeed() {
                   {order.user}
                 </span>
                 <span className="text-[11px] text-gray-500 whitespace-nowrap">
-                  topped up
+                  {t.liveFeed.toppedUp}
                 </span>
                 <span className="text-[11px] font-bold text-brand-cyan whitespace-nowrap">
                   {order.item}
                 </span>
                 <span className="text-[11px] text-gray-500 whitespace-nowrap">
-                  on {order.game}
+                  {t.liveFeed.on} {order.game}
                 </span>
                 <span className="text-[10px] text-gray-600 whitespace-nowrap ml-1">
                   · {order.time}

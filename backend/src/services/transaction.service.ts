@@ -253,39 +253,50 @@ export const getTransactionById = async (id: string) => {
       if (paymentStatus === "PAID") {
         const randomPaymentRef = `PAY-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
         
-        transaction = await prisma.transaction.update({
-          where: { id: transaction.id },
+        const updatedResult = await prisma.transaction.updateMany({
+          where: {
+            id: transaction.id,
+            status: TransactionStatus.PENDING,
+          },
           data: {
             status: TransactionStatus.COMPLETED,
             paymentRef: randomPaymentRef,
           },
-          include: {
-            package: {
-              include: {
-                game: true,
-              },
-            },
-          },
         });
-        console.log(`[Bakong API] Payment confirmed for transaction ${transaction.id}. Updated status to COMPLETED.`);
-        
-        // Trigger reseller API fulfillment
-        await fulfillOrder(transaction.id);
 
-        // Refetch to get updated providerRef
-        transaction = await prisma.transaction.findUnique({
-          where: { id: transaction.id },
-          include: {
-            package: {
-              include: {
-                game: true,
+        if (updatedResult.count > 0) {
+          console.log(`[Bakong API] Payment confirmed for transaction ${transaction.id}. Updated status to COMPLETED.`);
+          
+          // Trigger reseller API fulfillment
+          await fulfillOrder(transaction.id);
+          
+          // Refetch to get updated providerRef
+          transaction = await prisma.transaction.findUnique({
+            where: { id: transaction.id },
+            include: {
+              package: {
+                include: {
+                  game: true,
+                },
               },
             },
-          },
-        }) as any;
+          }) as any;
 
-        if (transaction) {
-          notifyTransactionStatus(transaction).catch(err => console.error("[Telegram Alert] Failed to send:", err));
+          if (transaction) {
+            notifyTransactionStatus(transaction).catch(err => console.error("[Telegram Alert] Failed to send:", err));
+          }
+        } else {
+          console.log(`[Bakong API] Transaction ${transaction.id} already completed concurrently.`);
+          transaction = await prisma.transaction.findUnique({
+            where: { id: transaction.id },
+            include: {
+              package: {
+                include: {
+                  game: true,
+                },
+              },
+            },
+          }) as any;
         }
       }
     } catch (error) {
@@ -350,7 +361,7 @@ export const simulatePaymentCompletion = async (id: string) => {
  * Maps Bakong's billNumber back to our transaction ID.
  */
 export const processBakongWebhook = async (payload: BakongWebhookPayload) => {
-  const { transactionId: bakongTransactionId, paymentRef, status, amount, paidAt } = payload;
+  const { transactionId: bakongTransactionId, paymentRef, status, amount, currency, paidAt } = payload;
 
   // Try to find by paymentRef first (idempotency check)
   const existingByPaymentRef = await prisma.transaction.findFirst({
@@ -410,6 +421,34 @@ export const processBakongWebhook = async (payload: BakongWebhookPayload) => {
     });
   }
 
+  // Verify amount matches exactly
+  if (amount !== transaction.totalAmount) {
+    console.error(`[Webhook] Price Mismatch for transaction ${transaction.id}! Expected: ${transaction.totalAmount}, Paid: ${amount}`);
+    await prisma.transaction.update({
+      where: { id: transaction.id },
+      data: {
+        status: TransactionStatus.FAILED,
+        paymentRef,
+        updatedAt: new Date(paidAt),
+      },
+    });
+    throw new Error("Payment amount mismatch");
+  }
+
+  // Verify currency matches exactly (USD)
+  if (currency.toUpperCase() !== "USD") {
+    console.error(`[Webhook] Currency Mismatch for transaction ${transaction.id}! Expected: USD, Paid: ${currency}`);
+    await prisma.transaction.update({
+      where: { id: transaction.id },
+      data: {
+        status: TransactionStatus.FAILED,
+        paymentRef,
+        updatedAt: new Date(paidAt),
+      },
+    });
+    throw new Error("Payment currency mismatch");
+  }
+
   let newStatus: TransactionStatus;
   switch (status.toUpperCase()) {
     case "SUCCESS":
@@ -423,13 +462,31 @@ export const processBakongWebhook = async (payload: BakongWebhookPayload) => {
       newStatus = TransactionStatus.PROCESSING;
   }
 
-  const updated = await prisma.transaction.update({
-    where: { id: transaction.id },
+  // Atomic state locking status check to prevent concurrency race double fulfillments
+  const updatedResult = await prisma.transaction.updateMany({
+    where: {
+      id: transaction.id,
+      status: TransactionStatus.PENDING,
+    },
     data: {
       status: newStatus,
       paymentRef,
       updatedAt: new Date(paidAt),
     },
+  });
+
+  if (updatedResult.count === 0) {
+    console.log(`[Webhook] Transaction ${transaction.id} already completed or modified by concurrent process.`);
+    return await prisma.transaction.findUnique({
+      where: { id: transaction.id },
+      include: {
+        package: { include: { game: true } },
+      },
+    });
+  }
+
+  const updated = await prisma.transaction.findUnique({
+    where: { id: transaction.id },
     include: {
       package: {
         include: {
@@ -438,6 +495,10 @@ export const processBakongWebhook = async (payload: BakongWebhookPayload) => {
       },
     },
   });
+
+  if (!updated) {
+    throw new Error("Updated transaction not found");
+  }
 
   console.log(
     `[Webhook] Transaction ${updated.id} updated to ${updated.status} | PaymentRef: ${paymentRef}`
@@ -553,5 +614,63 @@ export const fulfillOrder = async (transactionId: string) => {
     data: {
       providerRef,
     },
+  });
+};
+
+/**
+ * Get recent completed transactions with masked player info
+ */
+export const getRecentCompletedTransactions = async (limit: number = 10) => {
+  const transactions = await prisma.transaction.findMany({
+    where: {
+      status: TransactionStatus.COMPLETED,
+    },
+    orderBy: {
+      updatedAt: "desc",
+    },
+    take: limit,
+    include: {
+      package: {
+        include: {
+          game: true,
+        },
+      },
+    },
+  });
+
+  return transactions.map((tx) => {
+    let username = "User";
+    if (tx.playerInfo) {
+      const info = typeof tx.playerInfo === "string"
+        ? JSON.parse(tx.playerInfo)
+        : tx.playerInfo;
+
+      if (info.username) {
+        username = info.username;
+      } else if (info.playerId) {
+        username = info.playerId;
+      }
+    }
+
+    // Mask username: e.g., Sokha -> Sok***, 123456 -> 123***
+    let maskedUser = "User***";
+    if (username && username !== "User") {
+      const len = username.length;
+      if (len <= 3) {
+        maskedUser = username[0] + "***";
+      } else {
+        maskedUser = username.substring(0, Math.ceil(len / 2)) + "***";
+      }
+    } else {
+      maskedUser = "User" + tx.id.substring(tx.id.length - 4) + "***";
+    }
+
+    return {
+      id: tx.id,
+      user: maskedUser,
+      game: tx.package?.game?.name || "Game",
+      item: tx.package?.name || "Package",
+      time: tx.updatedAt,
+    };
   });
 };

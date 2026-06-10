@@ -18,7 +18,14 @@ app.use(cors({
   origin: process.env.FRONTEND_URL || "http://localhost:3000",
   credentials: true,
 }));
-app.use(express.json({ limit: "10mb" }));
+app.use(
+  express.json({
+    limit: "10mb",
+    verify: (req: any, res, buf) => {
+      req.rawBody = buf.toString();
+    },
+  })
+);
 
 // Security headers
 app.use((req, res, next) => {
