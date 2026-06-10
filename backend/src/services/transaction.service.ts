@@ -1,0 +1,557 @@
+import { prisma } from "../lib/prisma";
+import { TransactionStatus } from "@prisma/client";
+import { generateKhqrCode } from "../utils/khqr";
+import { SmileOneClient, UniPinClient, TopUpLiveClient } from "../utils/providerClient";
+import crypto from "crypto";
+import https from "https";
+import { URL } from "url";
+import { notifyTransactionStatus } from "../utils/telegram";
+
+interface CreateTransactionInput {
+  packageId: string;
+  playerInfo: any;
+  paymentMethod: string;
+  userId?: string;
+  token?: string;
+  accountId?: string;
+  promoCode?: string;
+  vipDiscountPercentage?: number;
+}
+
+interface BakongWebhookPayload {
+  transactionId: string; // billNumber or our transaction ID
+  paymentRef: string;    // Bakong's payment reference
+  status: string;        // "SUCCESS" | "FAILED" | "EXPIRED"
+  amount: number;
+  currency: string;
+  paidAt: string;        // ISO date string
+}
+
+/**
+ * Initiate a new top-up transaction in PENDING status
+ */
+/**
+ * Validate a promo code
+ */
+export const validatePromoCode = async (code: string, packageId: string) => {
+  const promo = await prisma.promoCode.findUnique({
+    where: { code: code.toUpperCase() }
+  });
+
+  if (!promo || !promo.isActive) {
+    throw new Error("Invalid promo code");
+  }
+
+  if (promo.useCount >= promo.maxUses) {
+    throw new Error("Promo code limit reached");
+  }
+
+  const pkg = await prisma.package.findUnique({
+    where: { id: packageId }
+  });
+
+  if (!pkg) {
+    throw new Error("Package not found");
+  }
+
+  const discountAmount = Number((pkg.price * promo.discount).toFixed(2));
+  const finalPrice = Math.max(0, Number((pkg.price - discountAmount).toFixed(2)));
+
+  return {
+    valid: true,
+    code: promo.code,
+    discountPercentage: promo.discount * 100,
+    discountAmount,
+    finalPrice
+  };
+};
+
+export const createNewTransaction = async (data: CreateTransactionInput) => {
+  // Fetch package details to get current price
+  const pkg = await prisma.package.findUnique({
+    where: { id: data.packageId },
+  });
+
+  if (!pkg) {
+    throw new Error("Package not found");
+  }
+
+  let promoDiscountAmount = 0;
+  let promoCodeUsed: string | null = null;
+  if (data.promoCode) {
+    try {
+      const val = await validatePromoCode(data.promoCode, data.packageId);
+      promoDiscountAmount = val.discountAmount;
+      promoCodeUsed = val.code;
+      // Increment use count
+      await prisma.promoCode.update({
+        where: { code: val.code },
+        data: { useCount: { increment: 1 } }
+      });
+    } catch (err: any) {
+      throw new Error(err.message || "Invalid promo code");
+    }
+  }
+
+  let vipDiscountAmount = 0;
+  if (data.vipDiscountPercentage) {
+    vipDiscountAmount = Number((pkg.price * (data.vipDiscountPercentage / 100)).toFixed(2));
+  }
+
+  const finalTotal = Math.max(0, Number((pkg.price - promoDiscountAmount - vipDiscountAmount).toFixed(2)));
+
+  // 1. Create transaction in database first
+  const transaction = await prisma.transaction.create({
+    data: {
+      packageId: data.packageId,
+      userId: data.userId || null,
+      status: TransactionStatus.PENDING,
+      paymentMethod: data.paymentMethod,
+      playerInfo: data.playerInfo,
+      totalAmount: finalTotal,
+      promoCodeUsed,
+      discountAmount: promoDiscountAmount,
+      vipDiscountAmount,
+      qrCode: null,
+    },
+  });
+
+  let qrCode: string | null = null;
+  // 2. Generate KHQR if payment method is KHQR using the transaction's database ID as billNumber
+  if (data.paymentMethod === "KHQR") {
+    // Query active merchant settings from DB
+    const settings = await prisma.khqrSettings.findFirst({
+      where: { isActive: true },
+      orderBy: { updatedAt: "desc" },
+    });
+
+    const generated = generateKhqrCode({
+      token: data.token,
+      accountId: settings?.accountId || data.accountId,
+      merchantName: settings?.merchantName,
+      merchantCity: settings?.merchantCity,
+      amount: finalTotal,
+      billNumber: transaction.id, // Use the real transaction ID as bill number!
+    });
+    if (generated) {
+      qrCode = generated;
+    }
+  }
+
+  // Update transaction with the generated QR code (or keep null) and return with all inclusions
+  return await prisma.transaction.update({
+    where: { id: transaction.id },
+    data: { qrCode },
+    include: {
+      package: {
+        include: {
+          game: true,
+        },
+      },
+    },
+  });
+};
+
+// Helper to query Bakong Open API status by MD5 hash
+const checkTransactionByMd5 = async (md5: string): Promise<string> => {
+  const apiToken = process.env.BAKONG_API_TOKEN;
+  const apiBase = process.env.BAKONG_API_URL || "https://api-bakong.nbc.gov.kh";
+
+  if (!apiToken) {
+    console.warn("[Bakong API] Missing BAKONG_API_TOKEN in environment configuration.");
+    return "UNPAID";
+  }
+
+  return new Promise((resolve) => {
+    const payload = JSON.stringify({ md5 });
+    const url = new URL("/v1/check_transaction_by_md5", apiBase);
+
+    const options = {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiToken}`,
+        "Content-Length": Buffer.byteLength(payload),
+      },
+    };
+
+    const req = https.request(url, options, (res) => {
+      let data = "";
+      res.on("data", (chunk) => {
+        data += chunk;
+      });
+      res.on("end", () => {
+        try {
+          const json = JSON.parse(data || "{}");
+          if (json?.responseCode === 0 && json?.data) {
+            resolve("PAID");
+          } else {
+            resolve("UNPAID");
+          }
+        } catch {
+          resolve("UNPAID");
+        }
+      });
+    });
+
+    req.on("error", (err) => {
+      console.error("[Bakong API] Connection error:", err.message);
+      resolve("UNPAID");
+    });
+    req.write(payload);
+    req.end();
+  });
+};
+
+/**
+ * Retrieve transaction status and details
+ */
+export const getTransactionById = async (id: string) => {
+  let transaction = await prisma.transaction.findUnique({
+    where: { id },
+    include: {
+      package: {
+        include: {
+          game: true,
+        },
+      },
+    },
+  });
+
+  if (!transaction) {
+    throw new Error("Transaction not found");
+  }
+
+  // If transaction is still pending, check direct status via Bakong Open API
+  if (
+    transaction.status === TransactionStatus.PENDING &&
+    transaction.paymentMethod === "KHQR" &&
+    transaction.qrCode
+  ) {
+    // Check if the transaction is older than 5 minutes
+    const isStale = Date.now() - transaction.createdAt.getTime() > 5 * 60 * 1000;
+    if (isStale) {
+      transaction = await prisma.transaction.update({
+        where: { id: transaction.id },
+        data: { status: TransactionStatus.EXPIRED },
+        include: {
+          package: {
+            include: {
+              game: true,
+            },
+          },
+        },
+      });
+      console.log(`[Bakong API] Transaction ${transaction.id} expired (5-minute limit reached).`);
+      return transaction;
+    }
+
+    try {
+      const md5 = crypto.createHash("md5").update(transaction.qrCode).digest("hex");
+      const paymentStatus = await checkTransactionByMd5(md5);
+
+      if (paymentStatus === "PAID") {
+        const randomPaymentRef = `PAY-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
+        
+        transaction = await prisma.transaction.update({
+          where: { id: transaction.id },
+          data: {
+            status: TransactionStatus.COMPLETED,
+            paymentRef: randomPaymentRef,
+          },
+          include: {
+            package: {
+              include: {
+                game: true,
+              },
+            },
+          },
+        });
+        console.log(`[Bakong API] Payment confirmed for transaction ${transaction.id}. Updated status to COMPLETED.`);
+        
+        // Trigger reseller API fulfillment
+        await fulfillOrder(transaction.id);
+
+        // Refetch to get updated providerRef
+        transaction = await prisma.transaction.findUnique({
+          where: { id: transaction.id },
+          include: {
+            package: {
+              include: {
+                game: true,
+              },
+            },
+          },
+        }) as any;
+
+        if (transaction) {
+          notifyTransactionStatus(transaction).catch(err => console.error("[Telegram Alert] Failed to send:", err));
+        }
+      }
+    } catch (error) {
+      console.error("[Bakong API] Error verifying payment status:", error);
+    }
+  }
+
+  return transaction;
+};
+
+/**
+ * Simulate payment webhook or user callback that completes transaction
+ */
+export const simulatePaymentCompletion = async (id: string) => {
+  const transaction = await prisma.transaction.findUnique({
+    where: { id },
+  });
+
+  if (!transaction) {
+    throw new Error("Transaction not found");
+  }
+
+  if (transaction.status === TransactionStatus.COMPLETED) {
+    return transaction;
+  }
+
+  // Generate random payment reference for mock simulation
+  const randomPaymentRef = `PAY-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
+
+  await prisma.transaction.update({
+    where: { id },
+    data: {
+      status: TransactionStatus.COMPLETED,
+      paymentRef: randomPaymentRef,
+    },
+  });
+
+  // Call the external reseller API to trigger fulfillment
+  await fulfillOrder(id);
+
+  const updated = await prisma.transaction.findUnique({
+    where: { id },
+    include: {
+      package: {
+        include: {
+          game: true,
+        },
+      },
+    },
+  });
+
+  if (updated) {
+    notifyTransactionStatus(updated).catch(err => console.error("[Telegram Alert] Failed to send:", err));
+  }
+
+  return updated;
+};
+
+/**
+ * Process Bakong webhook callback.
+ * Handles idempotency: if already COMPLETED or FAILED, returns the existing transaction.
+ * Maps Bakong's billNumber back to our transaction ID.
+ */
+export const processBakongWebhook = async (payload: BakongWebhookPayload) => {
+  const { transactionId: bakongTransactionId, paymentRef, status, amount, paidAt } = payload;
+
+  // Try to find by paymentRef first (idempotency check)
+  const existingByPaymentRef = await prisma.transaction.findFirst({
+    where: { paymentRef },
+    include: {
+      package: {
+        include: { game: true },
+      },
+    },
+  });
+
+  if (existingByPaymentRef) {
+    console.log(`[Webhook] Duplicate payment ref: ${paymentRef}, transaction already processed.`);
+    return existingByPaymentRef;
+  }
+
+  // Strip prefix "BILL-" if present (for backward compatibility / mock billing numbers)
+  let lookupId = bakongTransactionId;
+  if (lookupId.startsWith("BILL-")) {
+    lookupId = lookupId.replace("BILL-", "");
+  }
+
+  const isValidObjectId = /^[0-9a-fA-F]{24}$/.test(lookupId);
+
+  let transaction = null;
+  if (isValidObjectId) {
+    transaction = await prisma.transaction.findUnique({
+      where: { id: lookupId },
+    });
+  }
+
+  if (!transaction) {
+    transaction = await prisma.transaction.findFirst({
+      where: {
+        status: TransactionStatus.PENDING,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (!transaction) {
+      console.error(`[Webhook] No PENDING transaction found for billNumber: ${bakongTransactionId}`);
+      throw new Error("Transaction not found");
+    }
+  }
+
+  if (
+    transaction.status === TransactionStatus.COMPLETED ||
+    transaction.status === TransactionStatus.FAILED ||
+    transaction.status === TransactionStatus.EXPIRED
+  ) {
+    console.log(`[Webhook] Transaction ${transaction.id} already in final state: ${transaction.status}`);
+    return await prisma.transaction.findUnique({
+      where: { id: transaction.id },
+      include: {
+        package: { include: { game: true } },
+      },
+    });
+  }
+
+  let newStatus: TransactionStatus;
+  switch (status.toUpperCase()) {
+    case "SUCCESS":
+      newStatus = TransactionStatus.COMPLETED;
+      break;
+    case "FAILED":
+    case "EXPIRED":
+      newStatus = TransactionStatus.FAILED;
+      break;
+    default:
+      newStatus = TransactionStatus.PROCESSING;
+  }
+
+  const updated = await prisma.transaction.update({
+    where: { id: transaction.id },
+    data: {
+      status: newStatus,
+      paymentRef,
+      updatedAt: new Date(paidAt),
+    },
+    include: {
+      package: {
+        include: {
+          game: true,
+        },
+      },
+    },
+  });
+
+  console.log(
+    `[Webhook] Transaction ${updated.id} updated to ${updated.status} | PaymentRef: ${paymentRef}`
+  );
+
+  if (newStatus === TransactionStatus.COMPLETED) {
+    await fulfillOrder(transaction.id);
+    const finishedTx = await prisma.transaction.findUnique({
+      where: { id: transaction.id },
+      include: {
+        package: {
+          include: {
+            game: true,
+          },
+        },
+      },
+    });
+
+    if (finishedTx) {
+      notifyTransactionStatus(finishedTx).catch(err => console.error("[Telegram Alert] Failed to send:", err));
+    }
+
+    return finishedTx;
+  }
+
+  return updated;
+};
+
+/**
+ * Mark expired PENDING transactions as EXPIRED status.
+ */
+export const expireOldTransactions = async (maxAgeMinutes: number = 60) => {
+  const cutoff = new Date(Date.now() - maxAgeMinutes * 60 * 1000);
+
+  const expired = await prisma.transaction.updateMany({
+    where: {
+      status: TransactionStatus.PENDING,
+      createdAt: { lt: cutoff },
+    },
+    data: {
+      status: TransactionStatus.EXPIRED,
+    },
+  });
+
+  if (expired.count > 0) {
+    console.log(`[Cron] Expired ${expired.count} stale PENDING transactions`);
+  }
+
+  return expired.count;
+};
+
+/**
+ * Fulfill the top-up order by calling the third-party reseller API (Smile One or UniPin)
+ */
+export const fulfillOrder = async (transactionId: string) => {
+  const transaction = await prisma.transaction.findUnique({
+    where: { id: transactionId },
+    include: {
+      package: {
+        include: {
+          game: true,
+        },
+      },
+    },
+  });
+
+  if (!transaction) {
+    console.error(`[Fulfillment] Transaction ${transactionId} not found`);
+    return null;
+  }
+
+  const sku = transaction.package.providerSku || "";
+  let providerRef = `PROV-MOCK-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
+
+  try {
+    if (sku.toLowerCase().startsWith("unipin")) {
+      const client = new UniPinClient();
+      const res = await client.processTopup({
+        providerSku: sku,
+        playerInfo: transaction.playerInfo as any,
+        transactionId: transaction.id
+      });
+      if (res.success && res.providerRef) {
+        providerRef = res.providerRef;
+      }
+    } else if (sku.toLowerCase().startsWith("topuplive")) {
+      const client = new TopUpLiveClient();
+      const res = await client.processTopup({
+        providerSku: sku,
+        playerInfo: transaction.playerInfo as any,
+        transactionId: transaction.id
+      });
+      if (res.success && res.providerRef) {
+        providerRef = res.providerRef;
+      }
+    } else {
+      const client = new SmileOneClient();
+      const res = await client.processTopup({
+        providerSku: sku,
+        playerInfo: transaction.playerInfo as any,
+        transactionId: transaction.id
+      });
+      if (res.success && res.providerRef) {
+        providerRef = res.providerRef;
+      }
+    }
+  } catch (err: any) {
+    console.error(`[Fulfillment Error] Failed for tx ${transactionId}:`, err.message);
+  }
+
+  return await prisma.transaction.update({
+    where: { id: transactionId },
+    data: {
+      providerRef,
+    },
+  });
+};

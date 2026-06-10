@@ -1,0 +1,182 @@
+export type Language = "en" | "kh";
+
+export const translations = {
+  en: {
+    nav: {
+      home: "Home",
+      games: "Games",
+      support: "Support",
+      loyalty: "Loyalty Program",
+      offers: "Offers",
+      admin: "Admin Console",
+      logout: "Log Out",
+      securedSession: "Secured Session",
+      userProfile: "Loyalty Profile",
+      tier: "Tier",
+      xp: "XP"
+    },
+    hero: {
+      title: "Fastest Gaming Top-ups",
+      subtitle: "Instant game credits delivery in Cambodia using secure Bakong KHQR transfers.",
+      searchPlaceholder: "Search games e.g. Free Fire, Mobile Legends...",
+      searchButton: "Search"
+    },
+    trending: {
+      title: "Trending Services",
+      subtitle: "Popular credits packages and gaming reload vouchers in Cambodia.",
+      viewDetails: "Top-up Now",
+      activeBadge: "Instant Delivery"
+    },
+    checkout: {
+      step1: "1. Enter Game Player ID",
+      step2: "2. Select Recharge Package",
+      step3: "3. Choose Payment Method",
+      playerId: "Player ID",
+      zoneId: "Zone ID (Optional)",
+      playerIdPlaceholder: "Enter your character numeric ID",
+      zoneIdPlaceholder: "Zone / Server ID",
+      promoCodeLabel: "Have a Promo Coupon?",
+      promoCodePlaceholder: "Enter Code (e.g. SUMMER10)",
+      applyPromo: "Apply",
+      promoApplied: "Promo Applied!",
+      invalidPromo: "Invalid coupon code.",
+      vipDiscountLabel: "Loyalty Tier VIP Discount",
+      promoDiscountLabel: "Coupon Discount",
+      finalPriceLabel: "Final Payment Total",
+      originalPriceLabel: "Base Price",
+      payButton: "Initiate Checkout KHQR",
+      checkoutTitle: "Fulfill Payment Details",
+      checkoutInstructions: "Scan or upload the KHQR using your mobile banking app to complete order.",
+      pollingSuccess: "Payment Confirmed! Your order has been successfully sent to delivery queue.",
+      pollingExpired: "Payment session expired. Please re-initiate top-up.",
+      pollingProcessing: "Awaiting bank notification confirmation...",
+      providerRefLabel: "Transaction ID",
+      deliverRefLabel: "Provider Ref",
+      deepLinkLabel: "Access Mobile Banking directly:",
+      openAbaPay: "Pay with ABA Mobile",
+      openBakong: "Open in Bakong App"
+    },
+    support: {
+      title: "Customer Support & FAQs",
+      subtitle: "Need help? Read our quick guide or talk to our live agent.",
+      howToTitle: "How to Recharge?",
+      howToStep1: "1. Choose your game and input player identifier.",
+      howToStep2: "2. Pick denomination amount and select KHQR payment.",
+      howToStep3: "3. Open banking application, scan payment QR code, and complete transaction.",
+      howToStep4: "4. Wait 5-15 seconds for automatic delivery hook validation."
+    },
+    games: {
+      pageTitle: "All Games Catalog",
+      pageSubtitle: "Choose your favorite game and top up instantly. Simple, secure, and fast.",
+      searchPlaceholder: "Search game...",
+      instantTopUp: "Instant Top-up",
+      hotBadge: "Hot",
+      noResults: "No games found matching",
+      clearSearch: "Clear Search",
+      loading: "Loading games...",
+    },
+    footer: {
+      description: "The premier destination for gamers in Cambodia. We provide the fastest and most secure top-up services for the world's most popular games.",
+      quickLinks: "Quick Links",
+      specialOffers: "Special Offers",
+      loyaltyProgram: "Loyalty Program",
+      helpCenter: "Help Center",
+      howToTopUp: "How to Top-up",
+      termsOfService: "Terms of Service",
+      privacyPolicy: "Privacy Policy",
+      copyright: "© 2024 GAMEX Cambodia. Licensed by National Bank of Cambodia.",
+      terms: "Terms",
+      privacy: "Privacy",
+      contact: "Contact"
+    }
+  },
+  kh: {
+    nav: {
+      home: "ទំព័រដើម",
+      games: "ហ្គេមទាំងអស់",
+      support: "ជំនួយ & សេវាកម្ម",
+      loyalty: "កម្មវិធីភក្តីភាព",
+      offers: "ប្រូម៉ូសិន",
+      admin: "ប្រព័ន្ធគ្រប់គ្រង",
+      logout: "ចាកចេញ",
+      securedSession: "ប្រព័ន្ធសុវត្ថិភាព",
+      userProfile: "គណនីភក្តីភាព",
+      tier: "កម្រិត",
+      xp: "ពិន្ទុ XP"
+    },
+    hero: {
+      title: "បញ្ចូលលុយហ្គេមលឿនបំផុត",
+      subtitle: "ការបញ្ចូលកាក់ហ្គេមភ្លាមៗនៅក្នុងប្រទេសកម្ពុជា តាមរយៈការផ្ទេរប្រាក់ Bakong KHQR ដែលមានសុវត្ថិភាពខ្ពស់។",
+      searchPlaceholder: "ស្វែងរកហ្គេម ឧ. Free Fire, Mobile Legends...",
+      searchButton: "ស្វែងរក"
+    },
+    trending: {
+      title: "សេវាកម្មពេញនិយម",
+      subtitle: "កញ្ចប់បញ្ចូលលុយហ្គេមពេញនិយម និងប័ណ្ណទូទាត់ប្រាក់ហ្គេមផ្សេងៗក្នុងប្រទេសកម្ពុជា។",
+      viewDetails: "បញ្ចូលលុយឥឡូវនេះ",
+      activeBadge: "ដឹកជញ្ជូនភ្លាមៗ"
+    },
+    checkout: {
+      step1: "១. បញ្ចូល លេខសម្គាល់អ្នកលេង (Player ID)",
+      step2: "២. ជ្រើសរើស កញ្ចប់បញ្ចូលលុយ",
+      step3: "៣. ជ្រើសរើស វិធីសាស្ត្រទូទាត់ប្រាក់",
+      playerId: "លេខសម្គាល់គណនី (Player ID)",
+      zoneId: "លេខកូដតំបន់/ម៉ាស៊ីនបម្រើ (Zone ID)",
+      playerIdPlaceholder: "បញ្ចូលលេខសម្គាល់តួអង្គរបស់អ្នក",
+      zoneIdPlaceholder: "លេខកូដ Zone / Server",
+      promoCodeLabel: "តើអ្នកមានកូដប្រូម៉ូសិនឬទេ?",
+      promoCodePlaceholder: "បញ្ចូលកូដប្រូម៉ូសិន (ឧ. SUMMER10)",
+      applyPromo: "យល់ព្រម",
+      promoApplied: "បានដាក់កូដជោគជ័យ!",
+      invalidPromo: "កូដប្រូម៉ូសិនមិនត្រឹមត្រូវឡើយ។",
+      vipDiscountLabel: "បញ្ចុះតម្លៃពិសេសកម្រិត Loyalty VIP",
+      promoDiscountLabel: "កូដបញ្ចុះតម្លៃ",
+      finalPriceLabel: "តម្លៃទូទាត់ចុងក្រោយ",
+      originalPriceLabel: "តម្លៃដើម",
+      payButton: "បង្កើតបារកូដ KHQR សម្រាប់ទូទាត់",
+      checkoutTitle: "ព័ត៌មានលម្អិតសម្រាប់ការទូទាត់",
+      checkoutInstructions: "សូមស្កែន ឬអាប់ឡូតរូបភាព KHQR តាមរយៈកម្មវិធីធនាគារទូរស័ព្ទរបស់អ្នកដើម្បីទូទាត់ប្រាក់។",
+      pollingSuccess: "ការទូទាត់ត្រូវបានបញ្ជាក់! ការបញ្ជាទិញរបស់អ្នកត្រូវបានបញ្ជូនទៅកាន់ប្រព័ន្ធដឹកជញ្ជូនដោយជោគជ័យ។",
+      pollingExpired: "រយៈពេលទូទាត់ប្រាក់បានហួសកំណត់។ សូមធ្វើការបង្កើតការទូទាត់សារជាថ្មី។",
+      pollingProcessing: "កំពុងរង់ចាំការបញ្ជាក់ការទូទាត់ពីធនាគារ...",
+      providerRefLabel: "លេខបញ្ជាទិញ",
+      deliverRefLabel: "លេខបញ្ជាក់ដឹកជញ្ជូន",
+      deepLinkLabel: "ចុចទីនេះដើម្បីបើកកម្មវិធីធនាគារដោយផ្ទាល់៖",
+      openAbaPay: "ទូទាត់ប្រាក់តាម ABA Mobile",
+      openBakong: "ទូទាត់ប្រាក់តាមកម្មវិធី Bakong"
+    },
+    support: {
+      title: "ជំនួយ និង សំណួរដែលសួរញឹកញាប់",
+      subtitle: "តើអ្នកត្រូវការជំនួយមែនទេ? សូមអានការណែនាំរហ័ស ឬជជែកជាមួយបុគ្គលិកជំនួយផ្ទាល់។",
+      howToTitle: "តើត្រូវបញ្ចូលលុយហ្គេមដោយរបៀបណា?",
+      howToStep1: "១. ជ្រើសរើសហ្គេមរបស់អ្នក និងវាយបញ្ចូលលេខសម្គាល់គណនីហ្គេម (Player ID)។",
+      howToStep2: "២. ជ្រើសរើសកញ្ចប់ទឹកប្រាក់ដែលចង់បាន រួចជ្រើសរើសយកការបង់ប្រាក់តាម KHQR។",
+      howToStep3: "៣. បើកកម្មវិធីធនាគាររបស់អ្នក ស្កែនរូបភាព QR កូដ រួចធ្វើការទូទាត់។",
+      howToStep4: "៤. រង់ចាំ ៥ ទៅ ១៥វិនាទី ដើម្បីឱ្យប្រព័ន្ធផ្ទៀងផ្ទាត់ និងបញ្ចូលកាក់ហ្គេមដោយស្វ័យប្រវត្ត។"
+    },
+    games: {
+      pageTitle: "កាតាឡុកហ្គេមទាំងអស់",
+      pageSubtitle: "ជ្រើសរើសហ្គេមដែលអ្នកចូលចិត្ត និងបញ្ចូលលុយភ្លាមៗ។ ងាយស្រួល សុវត្ថិភាព និងរហ័ស។",
+      searchPlaceholder: "ស្វែងរកហ្គេម...",
+      instantTopUp: "បញ្ចូលលុយភ្លាមៗ",
+      hotBadge: "ពេញនិយម",
+      noResults: "រកមិនឃើញហ្គេមដែលត្រូវគ្នាជាមួយ",
+      clearSearch: "សម្អាតការស្វែងរក",
+      loading: "កំពុងទាញយកហ្គេម...",
+    },
+    footer: {
+      description: "ទីកន្លែងដ៏ល្អបំផុតសម្រាប់អ្នកលេងហ្គេមនៅក្នុងប្រទេសកម្ពុជា។ យើងផ្តល់ជូននូវសេវាកម្មបញ្ចូលលុយហ្គេមដែលលឿន និងមានសុវត្ថិភាពបំផុតសម្រាប់ហ្គេមពេញនិយមបំផុតនៅលើពិភពលោក។",
+      quickLinks: "តំណភ្ជាប់រហ័ស",
+      specialOffers: "ប្រូម៉ូសិនពិសេស",
+      loyaltyProgram: "កម្មវិធីភក្តីភាព",
+      helpCenter: "មជ្ឈមណ្ឌលជំនួយ",
+      howToTopUp: "របៀបបញ្ចូលលុយ",
+      termsOfService: "លក្ខខណ្ឌនៃការប្រើប្រាស់",
+      privacyPolicy: "គោលការណ៍ឯកជនភាព",
+      copyright: "© ២០២៤ ហ្គេមអ៊ិច ខេមបូឌា (GAMEX Cambodia)។ ទទួលបានអាជ្ញាប័ណ្ណដោយធនាគារជាតិនៃកម្ពុជា។",
+      terms: "លក្ខខណ្ឌ",
+      privacy: "ឯកជនភាព",
+      contact: "ទំនាក់ទំនង"
+    }
+  }
+};

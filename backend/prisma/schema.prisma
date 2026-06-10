@@ -1,0 +1,101 @@
+// This is your Prisma schema file
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String         @id @default(auto()) @map("_id") @db.ObjectId
+  email         String?        @unique
+  name          String?
+  transactions  Transaction[]
+  createdAt     DateTime       @default(now())
+}
+
+model Game {
+  id            String         @id @default(auto()) @map("_id") @db.ObjectId
+  slug          String         @unique // e.g., 'free-fire'
+  name          String         // e.g., 'Free Fire'
+  iconUrl       String
+  bannerUrl     String?
+  inputConfig   Json           // Dynamic fields required: { "playerId": "string", "zoneId": "number" }
+  packages      Package[]
+  isActive      Boolean        @default(true)
+  isHot         Boolean        @default(false)
+  createdAt     DateTime       @default(now())
+}
+
+model Package {
+  id            String         @id @default(auto()) @map("_id") @db.ObjectId
+  gameId        String         @db.ObjectId
+  game          Game           @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  name          String         // e.g., '100 Diamonds'
+  amount        Int            // Credits value
+  price         Float          // Price of package
+  originalPrice Float          // Original price before discount
+  bestValue     Boolean        @default(false)
+  providerSku   String         // External SKU for the top-up provider
+  transactions  Transaction[]
+}
+
+enum TransactionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  EXPIRED
+}
+
+model Transaction {
+  id                String            @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String?           @db.ObjectId
+  user              User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  packageId         String            @db.ObjectId
+  package           Package           @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  status            TransactionStatus @default(PENDING)
+  paymentMethod     String            // 'ABA', 'WING', 'BAKONG', 'KHQR'
+  paymentRef        String?           // External payment ID
+  providerRef       String?           // External top-up provider ID
+  playerInfo        Json              // Captured IDs: { "playerId": "12345", "zoneId": "999" }
+  totalAmount       Float
+  promoCodeUsed     String?
+  discountAmount    Float?            @default(0)
+  vipDiscountAmount Float?            @default(0)
+  qrCode            String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+}
+
+model KhqrSettings {
+  id                  String   @id @default(auto()) @map("_id") @db.ObjectId
+  merchantName        String   @default("Gamex Cambodia")
+  accountId           String   @default("thoeurn_ratha@bkrt")
+  merchantCity        String   @default("Phnom Penh")
+  smileOneEmail       String   @default("")
+  smileOneApiKey      String   @default("")
+  smileOneApiUrl      String   @default("https://api.smileone.com/v1/order")
+  uniPinSecret        String   @default("")
+  uniPinApiUrl        String   @default("https://api.unipin.com/v1/topup")
+  topUpLiveMerchantId String   @default("")
+  topUpLiveApiKey     String   @default("")
+  topUpLiveApiUrl     String   @default("https://api.topuplive.com/v1/order")
+  isActive            Boolean  @default(true)
+  updatedAt           DateTime @updatedAt
+}
+
+model PromoCode {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  code        String   @unique
+  discount    Float    // e.g. 0.10 for 10%
+  isActive    Boolean  @default(true)
+  maxUses     Int      @default(100)
+  useCount    Int      @default(0)
+  createdAt   DateTime @default(now())
+}
+
