@@ -20,7 +20,6 @@ const banks = [
   { name: "ACLEDA", abbr: "ACL", color: "#00b2ff", bg: "rgba(0,178,255,0.1)", border: "rgba(0,178,255,0.2)" },
   { name: "Wing Bank", abbr: "WING", color: "#e21a22", bg: "rgba(226,26,34,0.1)", border: "rgba(226,26,34,0.2)" },
   { name: "Cambodian Public Bank", abbr: "CPB", color: "#9c59d1", bg: "rgba(156,89,209,0.1)", border: "rgba(156,89,209,0.2)" },
-  { name: "Prince Bank", abbr: "PB", color: "#00c896", bg: "rgba(0,200,150,0.1)", border: "rgba(0,200,150,0.2)" },
 ];
 
 export default function PaymentMethods() {
@@ -78,7 +77,7 @@ export default function PaymentMethods() {
 
       {/* Supported banks grid */}
       <motion.div
-        className="grid grid-cols-3 sm:grid-cols-5 gap-3 max-w-2xl mx-auto"
+        className="grid grid-cols-3 sm:grid-cols-4 gap-3 max-w-2xl mx-auto"
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
         viewport={{ once: false, amount: 0.3 }}
