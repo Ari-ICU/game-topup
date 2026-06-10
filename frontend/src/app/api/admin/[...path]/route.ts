@@ -47,11 +47,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ pat
 
   const cookieStore = await cookies();
   const token = cookieStore.get("admin_token")?.value || "";
-  
+
   let body = {};
   try {
     body = await request.json();
-  } catch {}
+  } catch { }
 
   try {
     const res = await fetch(`${API_URL}/api/admin/${pathStr}`, {
@@ -89,14 +89,14 @@ export async function PUT(request: Request, { params }: { params: Promise<{ path
   const API_URL = process.env.BACKEND_API_URL || "http://localhost:5001";
   const { path } = await params;
   const pathStr = path.join("/");
-  
+
   const cookieStore = await cookies();
   const token = cookieStore.get("admin_token")?.value || "";
 
   let body = {};
   try {
     body = await request.json();
-  } catch {}
+  } catch { }
 
   try {
     const res = await fetch(`${API_URL}/api/admin/${pathStr}`, {
@@ -116,11 +116,69 @@ export async function PUT(request: Request, { params }: { params: Promise<{ path
   }
 }
 
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ path: string[] }> }
+) {
+  const API_URL = process.env.BACKEND_API_URL || "http://localhost:5001";
+
+  const { path } = await params;
+  const pathStr = path.join("/");
+
+  const cookieStore = await cookies();
+  const token = cookieStore.get("admin_token")?.value || "";
+
+  let body = {};
+  try {
+    body = await request.json();
+  } catch { }
+
+  try {
+    const res = await fetch(`${API_URL}/api/admin/${pathStr}`, {
+      method: "PATCH",
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+    console.log("PATCH forwarding to:", `${API_URL}/api/admin/${pathStr}`);
+
+    const contentType = res.headers.get("content-type");
+
+    if (contentType?.includes("application/json")) {
+      const data = await res.json();
+
+      return NextResponse.json(data, {
+        status: res.status,
+      });
+    }
+
+    const text = await res.text();
+
+    return NextResponse.json(
+      {
+        error: text,
+      },
+      {
+        status: res.status,
+      }
+    );
+  } catch (error) {
+    console.error(`Error proxying PATCH to admin/${pathStr}:`, error);
+
+    return NextResponse.json(
+      { error: "Failed to connect to backend" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function DELETE(request: Request, { params }: { params: Promise<{ path: string[] }> }) {
   const API_URL = process.env.BACKEND_API_URL || "http://localhost:5001";
   const { path } = await params;
   const pathStr = path.join("/");
-  
+
   const cookieStore = await cookies();
   const token = cookieStore.get("admin_token")?.value || "";
 

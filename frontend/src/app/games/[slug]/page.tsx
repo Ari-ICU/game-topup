@@ -517,22 +517,23 @@ export default function GameTopupPage() {
                           }}
                           className="flex-1 text-sm font-semibold rounded-xl border border-[#1d2438] bg-[#080b11] p-3 outline-none focus:border-brand-cyan transition min-w-0"
                         />
-                        <motion.button
-                          type="button"
-                          onClick={handleCheckId}
-                          disabled={!playerId.trim() || idCheckStatus === "CHECKING"}
-                          className="shrink-0 px-3 py-2 rounded-xl border-2 border-[#1d2438] bg-[#080b11] text-xs font-bold text-gray-300 hover:border-brand-cyan hover:text-brand-cyan disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150 flex items-center gap-1.5"
-                          whileTap={{ scale: 0.95 }}
-                        >
-                          {idCheckStatus === "CHECKING" ? (
-                            <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-600 border-t-brand-cyan animate-spin" />
-                          ) : (
-                            <ShieldCheck className="w-3.5 h-3.5" />
-                          )}
-                          {language === "en" ? "Check" : "ផ្ទៀងផ្ទាត់"}
-                        </motion.button>
                       </div>
-                      {/* ID check result */}
+                    </div>
+                    {game.hasZoneId && (
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-gray-400">Zone ID / Server ID</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder={t.checkout.zoneIdPlaceholder}
+                          value={zoneId}
+                          onChange={(e) => setZoneId(e.target.value)}
+                          className="w-full text-sm font-semibold rounded-xl border border-[#1d2438] bg-[#080b11] p-3 outline-none focus:border-brand-cyan transition"
+                        />
+                      </div>
+                    )}
+                  </div>
+                  {/* ID check result */}
                       <AnimatePresence>
                         {idCheckStatus === "FOUND" && (
                           <motion.div
@@ -560,21 +561,20 @@ export default function GameTopupPage() {
                           </motion.div>
                         )}
                       </AnimatePresence>
-                    </div>
-                    {game.hasZoneId && (
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-gray-400">Zone ID / Server ID</label>
-                        <input
-                          type="text"
-                          required
-                          placeholder={t.checkout.zoneIdPlaceholder}
-                          value={zoneId}
-                          onChange={(e) => setZoneId(e.target.value)}
-                          className="w-full text-sm font-semibold rounded-xl border border-[#1d2438] bg-[#080b11] p-3 outline-none focus:border-brand-cyan transition"
-                        />
-                      </div>
+                  <motion.button
+                    type="button"
+                    onClick={handleCheckId}
+                    disabled={!playerId.trim() || idCheckStatus === "CHECKING"}
+                    className="shrink-0 px-3 py-2 rounded-xl border-2 border-[#1d2438] bg-[#080b11] text-xs font-bold text-gray-300 hover:border-brand-cyan hover:text-brand-cyan disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150 flex items-center gap-1.5"
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    {idCheckStatus === "CHECKING" ? (
+                      <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-600 border-t-brand-cyan animate-spin" />
+                    ) : (
+                      <ShieldCheck className="w-3.5 h-3.5" />
                     )}
-                  </div>
+                    {language === "en" ? "Check" : "ផ្ទៀងផ្ទាត់"}
+                  </motion.button>
                 </motion.section>
 
                 {/* Step 2: Package Selection */}
@@ -825,7 +825,7 @@ export default function GameTopupPage() {
                                 <div className="text-green-400">{t.checkout.promoDiscountLabel}: <span>-${formatPrice(promoDiscountAmount).replace("$", "")}</span></div>
                               )}
                             </div>
-                            
+
                             <div>
                               <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{t.checkout.finalPriceLabel}</span>
                               <div className="font-black text-lg text-brand-cyan">
