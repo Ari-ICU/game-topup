@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import logger from "../utils/logger";
 
 // In-memory rate limiting map (IP -> { count, resetTime })
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
@@ -22,7 +23,7 @@ export const adminRateLimiter = (limit: number, windowMs: number) => {
     }
 
     if (rateData.count >= limit) {
-      console.warn(`[Firewall] Rate-limiting triggered for IP: ${ip} on admin routes.`);
+      logger.warn(`[Firewall] Rate-limiting triggered for IP: ${ip} on admin routes.`);
       return res.status(429).json({
         error: "Too many requests. Admin security firewall rate-limiting triggered. Please wait a moment."
       });
@@ -45,12 +46,15 @@ export const adminAuth = (req: any, res: Response, next: NextFunction): any => {
   const token = authHeader.split(" ")[1];
   const secret = process.env.JWT_SECRET;
   if (!secret) {
-    console.error("[FATAL] JWT_SECRET environment variable is not configured!");
+    logger.error("[FATAL] JWT_SECRET environment variable is not configured!");
     return res.status(500).json({ error: "Server misconfiguration. Contact administrator." });
   }
 
   try {
-    const decoded = jwt.verify(token, secret);
+    const decoded = jwt.verify(token, secret, {
+      issuer: "gamex-cambodia-api",
+      audience: "gamex-cambodia-admin",
+    });
     req.admin = decoded;
     next();
   } catch (error) {

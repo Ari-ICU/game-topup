@@ -2,59 +2,86 @@ import { prisma } from "../lib/prisma";
 import { TransactionStatus } from "@prisma/client";
 import fs from "fs";
 import path from "path";
+import logger from "../utils/logger";
 
 /**
- * Compute aggregate store metrics (total sales, count, game counts)
+ * Compute aggregate store metrics using DB-level aggregation (no full table scan)
  */
 export const getStats = async () => {
-  const transactions = await prisma.transaction.findMany({
-    include: {
-      package: {
-        include: {
-          game: true
-        }
-      }
-    }
-  });
+  // Aggregate totals in the DB — no full table scan
+  const [totalCount, completedAgg, statusGroups] = await Promise.all([
+    prisma.transaction.count(),
+    prisma.transaction.aggregate({
+      _sum: { totalAmount: true },
+      _count: { _all: true },
+      where: { status: TransactionStatus.COMPLETED },
+    }),
+    prisma.transaction.groupBy({
+      by: ["status"],
+      _count: { _all: true },
+    }),
+  ]);
 
-  const totalTransactions = transactions.length;
-  const completedTransactions = transactions.filter(t => t.status === TransactionStatus.COMPLETED);
-  const totalSales = completedTransactions.reduce((acc, t) => acc + t.totalAmount, 0);
+  const totalSales = completedAgg._sum.totalAmount ?? 0;
+  const totalTransactions = totalCount;
 
   const statusCounts = {
-    PENDING: transactions.filter(t => t.status === TransactionStatus.PENDING).length,
-    COMPLETED: completedTransactions.length,
-    FAILED: transactions.filter(t => t.status === TransactionStatus.FAILED).length,
-    EXPIRED: transactions.filter(t => t.status === TransactionStatus.EXPIRED).length,
-    PROCESSING: transactions.filter(t => t.status === TransactionStatus.PROCESSING).length,
-  };
-
-  // Calculate sales per game
-  const gameSalesMap: Record<string, { name: string; sales: number; count: number }> = {};
-  completedTransactions.forEach(t => {
-    const game = t.package?.game;
-    if (game) {
-      if (!gameSalesMap[game.id]) {
-        gameSalesMap[game.id] = { name: game.name, sales: 0, count: 0 };
-      }
-      gameSalesMap[game.id].sales += t.totalAmount;
-      gameSalesMap[game.id].count += 1;
-    }
+    PENDING: 0,
+    COMPLETED: 0,
+    FAILED: 0,
+    EXPIRED: 0,
+    PROCESSING: 0,
+  } as Record<string, number>;
+  statusGroups.forEach((g) => {
+    statusCounts[g.status] = g._count._all;
   });
 
+  // Top 5 games by sales using groupBy
+  const gameSaleRows = await prisma.transaction.groupBy({
+    by: ["packageId"],
+    _sum: { totalAmount: true },
+    _count: { _all: true },
+    where: { status: TransactionStatus.COMPLETED },
+    orderBy: { _sum: { totalAmount: "desc" } },
+    take: 20, // fetch more to allow joining to game names
+  });
+
+  // Resolve game names for top packages
+  const packages = await prisma.package.findMany({
+    where: { id: { in: gameSaleRows.map((r) => r.packageId) } },
+    include: { game: { select: { id: true, name: true } } },
+  });
+  const pkgMap = new Map(packages.map((p) => [p.id, p]));
+
+  const gameSalesMap: Record<string, { name: string; sales: number; count: number }> = {};
+  gameSaleRows.forEach((row) => {
+    const pkg = pkgMap.get(row.packageId);
+    if (pkg?.game) {
+      const g = pkg.game;
+      if (!gameSalesMap[g.id]) {
+        gameSalesMap[g.id] = { name: g.name, sales: 0, count: 0 };
+      }
+      gameSalesMap[g.id].sales += row._sum.totalAmount ?? 0;
+      gameSalesMap[g.id].count += row._count._all;
+    }
+  });
   const topGames = Object.values(gameSalesMap).sort((a, b) => b.sales - a.sales).slice(0, 5);
 
-  // Recent 10 transactions
-  const recentTransactions = [...transactions]
-    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-    .slice(0, 10);
+  // Recent 10 transactions — lightweight select, no full scan
+  const recentTransactions = await prisma.transaction.findMany({
+    orderBy: { createdAt: "desc" },
+    take: 10,
+    include: {
+      package: { include: { game: { select: { name: true } } } },
+    },
+  });
 
   return {
     totalSales,
     totalTransactions,
     statusCounts,
     topGames,
-    recentTransactions
+    recentTransactions,
   };
 };
 
@@ -257,7 +284,7 @@ export const deletePackage = async (id: string) => {
 };
 
 /**
- * Search audit logs dynamically
+ * Search audit logs dynamically — filters pushed to DB, not in-memory
  */
 export const getTransactions = async (filters: {
   search?: string;
@@ -267,44 +294,43 @@ export const getTransactions = async (filters: {
 }) => {
   const skip = (filters.page - 1) * filters.limit;
 
-  let allTransactions = await prisma.transaction.findMany({
-    orderBy: { createdAt: "desc" },
-    include: {
-      package: {
-        include: {
-          game: true
-        }
-      }
-    }
-  });
+  // Build Prisma where clause — avoid loading entire table into memory
+  const where: any = {};
 
   if (filters.status) {
-    allTransactions = allTransactions.filter(t => t.status === filters.status);
+    where.status = filters.status as TransactionStatus;
   }
 
   if (filters.search) {
-    const s = filters.search.toLowerCase();
-    allTransactions = allTransactions.filter(t => {
-      const playerIdMatch = t.playerInfo && typeof t.playerInfo === "object" &&
-        Object.values(t.playerInfo as object).some(val => String(val).toLowerCase().includes(s));
-      return (
-        t.id.toLowerCase().includes(s) ||
-        (t.paymentRef && t.paymentRef.toLowerCase().includes(s)) ||
-        (t.package?.game?.name && t.package.game.name.toLowerCase().includes(s)) ||
-        (t.package?.name && t.package.name.toLowerCase().includes(s)) ||
-        playerIdMatch
-      );
-    });
+    const s = filters.search;
+    where.OR = [
+      { id: { contains: s, mode: "insensitive" } },
+      { paymentRef: { contains: s, mode: "insensitive" } },
+      { package: { name: { contains: s, mode: "insensitive" } } },
+      { package: { game: { name: { contains: s, mode: "insensitive" } } } },
+    ];
   }
 
-  const total = allTransactions.length;
-  const paginated = allTransactions.slice(skip, skip + filters.limit);
+  const [total, paginated] = await Promise.all([
+    prisma.transaction.count({ where }),
+    prisma.transaction.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: filters.limit,
+      include: {
+        package: {
+          include: { game: true },
+        },
+      },
+    }),
+  ]);
 
   return {
     transactions: paginated,
     total,
     page: filters.page,
-    limit: filters.limit
+    limit: filters.limit,
   };
 };
 
@@ -334,6 +360,44 @@ export const completeTransactionManually = async (id: string) => {
 };
 
 /**
+ * Verifies that the file buffer matches its declared extension by examining magic bytes (file signature)
+ */
+function verifyMagicBytes(buffer: Buffer, ext: string): boolean {
+  if (buffer.length < 4) return false;
+
+  // PNG: 89 50 4E 47
+  if (ext === ".png") {
+    return buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47;
+  }
+
+  // JPEG/JPG: FF D8 FF
+  if (ext === ".jpg" || ext === ".jpeg") {
+    return buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+  }
+
+  // GIF: GIF (47 49 46)
+  if (ext === ".gif") {
+    return buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46;
+  }
+
+  // WEBP: RIFF (52 49 46 46) ... WEBP (57 45 42 50) at offset 8
+  if (ext === ".webp") {
+    if (buffer.length < 12) return false;
+    const isRiff = buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46;
+    const isWebp = buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50;
+    return isRiff && isWebp;
+  }
+
+  // SVG: starts with XML tag or "<svg" (ignoring whitespace and BOM)
+  if (ext === ".svg") {
+    const text = buffer.toString("utf8", 0, Math.min(buffer.length, 1000)).trim().toLowerCase();
+    return text.includes("<svg") || text.startsWith("<?xml");
+  }
+
+  return false;
+}
+
+/**
  * Decodes base64 string and writes file to server disks
  */
 export const saveUploadedFile = async (name: string, base64Data: string) => {
@@ -350,6 +414,11 @@ export const saveUploadedFile = async (name: string, base64Data: string) => {
   const ext = (path.extname(name) || ".png").toLowerCase();
   if (!ALLOWED_EXTENSIONS.includes(ext)) {
     throw new Error(`File type "${ext}" is not permitted. Allowed: ${ALLOWED_EXTENSIONS.join(", ")}`);
+  }
+
+  // Verify that magic bytes match the declared extension
+  if (!verifyMagicBytes(buffer, ext)) {
+    throw new Error(`File content verification failed. The file signature does not match the "${ext}" extension.`);
   }
 
   // Security: sanitize base name to prevent path traversal
@@ -370,7 +439,7 @@ export const saveUploadedFile = async (name: string, base64Data: string) => {
     fs.writeFileSync(filePath, buffer);
     savedPathUrl = `/uploads/${fileName}`;
   } catch (err) {
-    console.warn("[Upload] Could not write to frontend public, trying backend local", err);
+    logger.warn("[Upload] Could not write to frontend public, trying backend local", err);
   }
 
   // 2. Backend static uploads directory fallback
@@ -384,7 +453,7 @@ export const saveUploadedFile = async (name: string, base64Data: string) => {
       savedPathUrl = `http://localhost:${process.env.PORT || 5001}/uploads/${fileName}`;
     }
   } catch (err) {
-    console.error("[Upload] Backend write failed", err);
+    logger.error("[Upload] Backend write failed", err);
   }
 
   if (!savedPathUrl) {

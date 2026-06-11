@@ -1,5 +1,6 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
+import helmet from "helmet";
 import dotenv from "dotenv";
 import morgan from "morgan";
 import path from "path";
@@ -8,48 +9,69 @@ import transactionRoutes from "./routes/transaction.routes";
 import webhookRoutes from "./routes/webhook.routes";
 import adminRoutes from "./routes/admin.routes";
 import { errorHandler } from "./middlewares/errorHandler";
+import logger from "./utils/logger";
 
 dotenv.config();
 
 const app = express();
 
-// Standard Middlewares
+// ─── Startup ENV guard ───────────────────────────────────────────────────────
+// Fail fast if critical environment variables are missing
+const REQUIRED_ENV = ["JWT_SECRET", "ADMIN_PASSCODE", "DATABASE_URL"];
+for (const key of REQUIRED_ENV) {
+  if (!process.env[key]) {
+    logger.error(`[FATAL] Missing required environment variable: ${key}`);
+    process.exit(1);
+  }
+}
+if (process.env.NODE_ENV === "production" && !process.env.FRONTEND_URL) {
+  logger.error("[FATAL] FRONTEND_URL is not set in production!");
+  process.exit(1);
+}
+
+// ─── Security headers (Helmet) ────────────────────────────────────────────────
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }, // allow image serving
+}));
+
+// ─── CORS ─────────────────────────────────────────────────────────────────────
 app.use(cors({
   origin: process.env.FRONTEND_URL || "http://localhost:3000",
   credentials: true,
 }));
+
+// ─── Body parsing ────────────────────────────────────────────────────────────
+// Tight global limit (10kb). Admin upload route uses its own 10mb limit.
 app.use(
   express.json({
-    limit: "10mb",
+    limit: "10kb",
     verify: (req: any, res, buf) => {
       req.rawBody = buf.toString();
     },
   })
 );
-
-// Security headers
-app.use((req, res, next) => {
-  res.setHeader("X-Content-Type-Options", "nosniff");
-  res.setHeader("X-Frame-Options", "DENY");
-  res.setHeader("X-XSS-Protection", "1; mode=block");
-  res.removeHeader("X-Powered-By");
-  next();
-});
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
-// Custom request logger displaying [GET]/[POST] details
+// Custom request logger streaming via Winston
 app.use(
-  morgan((tokens, req, res) => {
-    return [
-      `[${tokens.method(req, res)}]`,
-      tokens.url(req, res),
-      "- Status:",
-      tokens.status(req, res),
-      "- Time:",
-      tokens["response-time"](req, res),
-      "ms",
-    ].join(" ");
-  })
+  morgan(
+    (tokens, req, res) => {
+      return [
+        `[${tokens.method(req, res)}]`,
+        tokens.url(req, res),
+        "- Status:",
+        tokens.status(req, res),
+        "- Time:",
+        tokens["response-time"](req, res),
+        "ms",
+      ].join(" ");
+    },
+    {
+      stream: {
+        write: (message) => logger.info(message.trim()),
+      },
+    }
+  )
 );
 
 // API Routes

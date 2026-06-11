@@ -399,17 +399,8 @@ export const processBakongWebhook = async (payload: BakongWebhookPayload) => {
   }
 
   if (!transaction) {
-    transaction = await prisma.transaction.findFirst({
-      where: {
-        status: TransactionStatus.PENDING,
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    if (!transaction) {
-      console.error(`[Webhook] No PENDING transaction found for billNumber: ${bakongTransactionId}`);
-      throw new Error("Transaction not found");
-    }
+    console.error(`[Webhook] No transaction found for billNumber: ${bakongTransactionId}`);
+    throw new Error("Transaction not found");
   }
 
   if (

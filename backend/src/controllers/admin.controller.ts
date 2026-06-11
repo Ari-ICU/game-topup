@@ -65,7 +65,15 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
       throw new Error("JWT_SECRET environment variable is not configured!");
     }
     const expiresIn = process.env.JWT_EXPIRES_IN || "1d";
-    const token = jwt.sign({ role: "admin" }, secret, { expiresIn: expiresIn as any });
+    const token = jwt.sign(
+      { role: "admin" },
+      secret,
+      {
+        expiresIn: expiresIn as any,
+        issuer: "gamex-cambodia-api",
+        audience: "gamex-cambodia-admin",
+      }
+    );
 
     res.json({ success: true, token });
   } catch (error) {

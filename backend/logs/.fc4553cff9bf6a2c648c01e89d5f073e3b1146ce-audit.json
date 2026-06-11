@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "/Users/thoeurnratha/Desktop/top-up/backend/logs/.fc4553cff9bf6a2c648c01e89d5f073e3b1146ce-audit.json",
+    "files": [
+        {
+            "date": 1781158597180,
+            "name": "/Users/thoeurnratha/Desktop/top-up/backend/logs/error-2026-06-11.log",
+            "hash": "90e2ca2f34fb827a930ccf9be163d683d790cac2a68c37b2048c9ecd95bcb36e"
+        }
+    ],
+    "hashType": "sha256"
+}

@@ -1,4 +1,5 @@
 import { Router } from "express";
+import express from "express";
 import * as adminController from "../controllers/admin.controller";
 import { adminRateLimiter, adminAuth } from "../middlewares/adminAuth";
 
@@ -35,6 +36,7 @@ router.delete("/packages/:id", adminController.deletePackage);
 router.get("/transactions", adminController.getTransactions);
 router.post("/transactions/:id/complete", adminController.completeTransaction);
 
-router.post("/upload", adminController.uploadFile);
+// Upload endpoint: override body limit to 10mb for base64 image uploads
+router.post("/upload", express.json({ limit: "10mb" }), adminController.uploadFile);
 
 export default router;

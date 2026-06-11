@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import logger from "../utils/logger";
 
 export interface CustomError extends Error {
   status?: number;
@@ -14,8 +15,8 @@ export const errorHandler = (
   const statusCode = err.statusCode || err.status || 500;
   const message = err.message || "Internal Server Error";
 
-  // Log error stack for debugging
-  console.error(`[Error] ${req.method} ${req.path}:`, err);
+  // Log error stack for debugging via Winston
+  logger.error(`[Error] ${req.method} ${req.path}: ${message}`, err);
 
   res.status(statusCode).json({
     error: {
