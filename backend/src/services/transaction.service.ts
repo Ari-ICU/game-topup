@@ -54,6 +54,11 @@ export const validatePromoCode = async (code: string, packageId: string) => {
     throw new Error("Package not found");
   }
 
+  // Verify game bounds if this is a game-specific promo code
+  if (promo.gameId && promo.gameId !== pkg.gameId) {
+    throw new Error("Promo code is not valid for this game");
+  }
+
   const discountAmount = Number((pkg.price * promo.discount).toFixed(2));
   const finalPrice = Math.max(0, Number((pkg.price - discountAmount).toFixed(2)));
 
@@ -682,6 +687,9 @@ export const getActivePromos = async () => {
   return await prisma.promoCode.findMany({
     where: {
       isActive: true,
+    },
+    include: {
+      game: true,
     },
     orderBy: {
       createdAt: "desc",

@@ -320,9 +320,14 @@ const mapPromoToDeal = (promo: any, t: any): Deal => {
   const discPercent = Math.round(promo.discount * 100);
   const discountLabel = discPercent > 0 ? `${discPercent}% Off` : "Special Deal";
 
+  const targetGameName = promo.game?.name || "All Games";
+  const targetGameSlug = promo.game?.slug ? `games/${promo.game.slug}` : "games";
+
   return {
-    title: `Exclusive Store Discount`,
-    desc: `Get a special ${discountLabel} discount on your top-up. Apply the promo code at checkout.`,
+    title: promo.game ? `${promo.game.name} Discount` : `Exclusive Store Discount`,
+    desc: promo.game 
+      ? `Get a special ${discountLabel} discount on ${promo.game.name} packages. Apply the promo code at checkout.` 
+      : `Get a special ${discountLabel} discount on your top-up. Apply the promo code at checkout.`,
     code: promo.code,
     discount: discountLabel,
     badge: design.badge,
@@ -331,8 +336,8 @@ const mapPromoToDeal = (promo: any, t: any): Deal => {
     accentText: design.accentText,
     glowColor: design.glowColor,
     expiresHours: 48,
-    game: "All Games",
-    gameSlug: "games",
+    game: targetGameName,
+    gameSlug: targetGameSlug,
   };
 };
 

@@ -26,6 +26,7 @@ model Game {
   bannerUrl     String?
   inputConfig   Json           // Dynamic fields required: { "playerId": "string", "zoneId": "number" }
   packages      Package[]
+  promoCodes    PromoCode[]
   isActive      Boolean        @default(true)
   isHot         Boolean        @default(false)
   createdAt     DateTime       @default(now())
@@ -96,6 +97,8 @@ model PromoCode {
   isActive    Boolean  @default(true)
   maxUses     Int      @default(100)
   useCount    Int      @default(0)
+  gameId      String?  @db.ObjectId
+  game        Game?    @relation(fields: [gameId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
 }
 

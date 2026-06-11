@@ -302,11 +302,16 @@ export const getPromos = async (req: Request, res: Response, next: NextFunction)
  */
 export const createPromo = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
-    const { code, discount, maxUses } = req.body;
+    const { code, discount, maxUses, gameId } = req.body;
     if (!code || discount === undefined) {
       return res.status(400).json({ error: "Missing required promo fields" });
     }
-    const promo = await adminService.createPromo({ code, discount: parseFloat(discount), maxUses: parseInt(maxUses) || 100 });
+    const promo = await adminService.createPromo({
+      code,
+      discount: parseFloat(discount),
+      maxUses: parseInt(maxUses) || 100,
+      gameId: gameId || null,
+    });
     res.status(201).json(promo);
   } catch (error) {
     next(error);

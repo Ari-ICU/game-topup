@@ -400,18 +400,26 @@ export const saveUploadedFile = async (name: string, base64Data: string) => {
 export const getAllPromos = async () => {
   return await prisma.promoCode.findMany({
     orderBy: { createdAt: "desc" },
+    include: {
+      game: {
+        select: {
+          name: true,
+        },
+      },
+    },
   });
 };
 
 /**
  * Create a new promo code
  */
-export const createPromo = async (data: { code: string; discount: number; maxUses?: number }) => {
+export const createPromo = async (data: { code: string; discount: number; maxUses?: number; gameId?: string | null }) => {
   return await prisma.promoCode.create({
     data: {
       code: data.code.toUpperCase(),
       discount: data.discount,
       maxUses: data.maxUses ?? 100,
+      gameId: data.gameId || null,
     },
   });
 };

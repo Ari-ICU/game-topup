@@ -211,6 +211,8 @@ export default function AdminSettings() {
   const [newPromoCode, setNewPromoCode] = useState("");
   const [newPromoDiscount, setNewPromoDiscount] = useState<number>(10);
   const [newPromoMaxUses, setNewPromoMaxUses] = useState<number>(100);
+  const [newPromoGameId, setNewPromoGameId] = useState<string>("");
+  const [games, setGames] = useState<any[]>([]);
   const [promoMessage, setPromoMessage] = useState("");
   const [promoError, setPromoError] = useState("");
 
@@ -257,7 +259,21 @@ export default function AdminSettings() {
     }
   };
 
-  useEffect(() => { fetchSettings(); }, []);
+  const fetchGames = async () => {
+    try {
+      const res = await fetch("/api/admin/games");
+      if (!res.ok) throw new Error("Failed to fetch games catalog");
+      const data = await res.json();
+      setGames(data || []);
+    } catch (err) {
+      console.error("Failed to load games:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchSettings();
+    fetchGames();
+  }, []);
   useEffect(() => { if (activeTab === "promos") fetchPromos(); }, [activeTab]);
 
   const handleSave = async (e: React.FormEvent) => {
@@ -314,6 +330,7 @@ export default function AdminSettings() {
           code: newPromoCode.trim().toUpperCase(),
           discount: newPromoDiscount / 100,
           maxUses: newPromoMaxUses,
+          gameId: newPromoGameId || null,
         }),
       });
       if (!res.ok) {
@@ -324,6 +341,7 @@ export default function AdminSettings() {
       setNewPromoCode("");
       setNewPromoDiscount(10);
       setNewPromoMaxUses(100);
+      setNewPromoGameId("");
       setShowCreateModal(false);
       fetchPromos();
       setTimeout(() => setPromoMessage(""), 5000);
@@ -746,7 +764,7 @@ export default function AdminSettings() {
                 <table className="w-full text-left text-sm">
                   <thead>
                     <tr className="border-b border-[#1e2840]">
-                      {["Code", "Discount", "Usage", "Status", "Active", "Created", ""].map((h) => (
+                      {["Code", "Game", "Discount", "Usage", "Status", "Active", "Created", ""].map((h) => (
                         <th key={h} className="px-5 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
                           {h}
                         </th>
@@ -768,6 +786,11 @@ export default function AdminSettings() {
                                 {promo.code}
                               </code>
                             </div>
+                          </td>
+
+                          {/* Game */}
+                          <td className="px-5 py-4 whitespace-nowrap text-xs font-semibold text-gray-400">
+                            {(promo as any).game?.name || "Global"}
                           </td>
 
                           {/* Discount */}
@@ -896,6 +919,21 @@ export default function AdminSettings() {
                     onChange={(e) => setNewPromoCode(e.target.value)}
                     className="uppercase tracking-widest font-mono"
                   />
+                </Field>
+
+                <Field label="Apply to Game">
+                  <select
+                    value={newPromoGameId}
+                    onChange={(e) => setNewPromoGameId(e.target.value)}
+                    className="block w-full py-2.5 px-3.5 bg-[#080c15] border border-[#1e2840] rounded-lg text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-cyan/25 focus:border-brand-cyan/60 transition-all cursor-pointer"
+                  >
+                    <option value="">Global (All Games)</option>
+                    {games.map((g) => (
+                      <option key={g.id} value={g.id}>
+                        {g.name}
+                      </option>
+                    ))}
+                  </select>
                 </Field>
 
                 <div className="grid grid-cols-2 gap-4">
