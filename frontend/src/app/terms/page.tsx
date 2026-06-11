@@ -4,6 +4,7 @@ import React from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { motion, type Variants } from "framer-motion";
+import { useLanguage } from "@/context/LanguageContext";
 
 const sectionVariants: Variants = {
   hidden: { opacity: 0, y: 28 },
@@ -19,22 +20,24 @@ const containerVariants: Variants = {
   visible: { transition: { staggerChildren: 0.14 } },
 };
 
-const sections = [
-  {
-    title: "1. Agreement to Terms",
-    body: "By accessing and placing top-up orders through GAMEX CAMBODIA, you agree to comply with and be bound by these Terms of Service. If you do not agree, please do not use our services.",
-  },
-  {
-    title: "2. Account Responsibility",
-    body: "It is your sole responsibility to provide the correct Player ID and Server ID details. GAMEX CAMBODIA is not liable for transactions made to incorrect accounts provided by the user.",
-  },
-  {
-    title: "3. Refund and Cancellation",
-    body: "Due to the nature of digital goods and instant programmatic deliveries, all top-up transactions are final. No refunds or cancellations will be issued once a transaction is processed.",
-  },
-];
-
 export default function TermsPage() {
+  const { t } = useLanguage();
+
+  const sections = [
+    {
+      title: t.terms.sec1Title,
+      body: t.terms.sec1Body,
+    },
+    {
+      title: t.terms.sec2Title,
+      body: t.terms.sec2Body,
+    },
+    {
+      title: t.terms.sec3Title,
+      body: t.terms.sec3Body,
+    },
+  ];
+
   return (
     <div className="flex flex-col min-h-screen bg-[#080b11] text-gray-200">
       <Navbar />
@@ -47,9 +50,9 @@ export default function TermsPage() {
           transition={{ duration: 0.6, ease: "easeOut" }}
         >
           <h1 className="text-3xl font-black text-white tracking-tight sm:text-4xl">
-            Terms of <span className="text-brand-cyan">Service</span>
+            {t.terms.title} <span className="text-brand-cyan">{t.terms.titleHighlight}</span>
           </h1>
-          <p className="text-xs text-gray-500 font-bold">Last updated: June 09, 2026</p>
+          <p className="text-xs text-gray-500 font-bold">{t.terms.lastUpdated}</p>
         </motion.div>
 
         <motion.div

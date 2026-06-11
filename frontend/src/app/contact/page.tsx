@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Send, Mail, MapPin, MessageSquare, Clock, ChevronRight, CheckCircle } from "lucide-react";
 import { motion, type Variants, AnimatePresence } from "framer-motion";
+import { useLanguage } from "@/context/LanguageContext";
 
 const containerVariants: Variants = {
   hidden: {},
@@ -21,40 +22,41 @@ const itemVariants: Variants = {
   },
 };
 
-const contactCards = [
-  {
-    icon: Send,
-    title: "Telegram Helpdesk",
-    desc: "Available 24/7 for instant support tickets and order inquiries.",
-    link: "https://t.me",
-    linkLabel: "@GamexCambodia_Bot",
-    accent: "from-[#00b2ff] to-[#0069ff]",
-    response: "< 5 min",
-  },
-  {
-    icon: Mail,
-    title: "Email Support",
-    desc: "For corporate, business invoicing, and bulk top-up partnerships.",
-    link: "mailto:support@gamexcambodia.com",
-    linkLabel: "support@gamexcambodia.com",
-    accent: "from-brand-cyan to-cyan-400",
-    response: "< 2 hours",
-  },
-  {
-    icon: MapPin,
-    title: "Headquarters",
-    desc: "Vattanac Capital Tower, Phnom Penh, Cambodia.",
-    link: "https://maps.google.com",
-    linkLabel: "View on Google Maps",
-    accent: "from-purple-400 to-pink-500",
-    response: "Walk-in by appointment",
-  },
-];
-
 export default function ContactPage() {
+  const { language, t } = useLanguage();
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const contactCards = [
+    {
+      icon: Send,
+      title: t.contact.telegramTitle,
+      desc: t.contact.telegramDesc,
+      link: "https://t.me",
+      linkLabel: "@GamexCambodia_Bot",
+      accent: "from-[#00b2ff] to-[#0069ff]",
+      response: "< 5 min",
+    },
+    {
+      icon: Mail,
+      title: t.contact.emailTitle,
+      desc: t.contact.emailDesc,
+      link: "mailto:support@gamexcambodia.com",
+      linkLabel: "support@gamexcambodia.com",
+      accent: "from-brand-cyan to-cyan-400",
+      response: "< 2 hours",
+    },
+    {
+      icon: MapPin,
+      title: t.contact.hqTitle,
+      desc: t.contact.hqDesc,
+      link: "https://maps.google.com",
+      linkLabel: t.contact.hqLink,
+      accent: "from-purple-400 to-pink-500",
+      response: t.contact.walkIn,
+    },
+  ];
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -89,13 +91,13 @@ export default function ContactPage() {
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest bg-brand-cyan/10 text-brand-cyan border border-brand-cyan/20"
           >
             <MessageSquare className="w-3 h-3" />
-            We&apos;re Here to Help
+            {t.contact.badge}
           </motion.div>
           <h1 className="text-4xl sm:text-5xl font-black text-white tracking-tight">
-            Contact <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-cyan to-cyan-400">Us</span>
+            {t.contact.title} <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-cyan to-cyan-400">{t.contact.titleHighlight}</span>
           </h1>
           <p className="text-sm text-gray-400 font-medium leading-relaxed">
-            Reach our team for support, partnership inquiries, or enterprise bulk top-up solutions.
+            {t.contact.subtitle}
           </p>
         </motion.div>
 
@@ -131,7 +133,7 @@ export default function ContactPage() {
 
                 <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-500">
                   <Clock className="w-3 h-3" />
-                  <span>Response time: <span className="text-brand-cyan">{card.response}</span></span>
+                  <span>{t.contact.responseTime}: <span className="text-brand-cyan">{card.response}</span></span>
                 </div>
 
                 {card.link && card.linkLabel && (
@@ -160,8 +162,8 @@ export default function ContactPage() {
             transition={{ delay: 0.25, duration: 0.55, ease: "easeOut" }}
           >
             <div>
-              <h2 className="text-xl font-black text-white">Send a Message</h2>
-              <p className="text-xs text-gray-400 mt-1 font-medium">We&apos;ll respond within 2 business hours.</p>
+              <h2 className="text-xl font-black text-white">{t.contact.sendMessage}</h2>
+              <p className="text-xs text-gray-400 mt-1 font-medium">{t.contact.formSubtitle}</p>
             </div>
 
             <AnimatePresence mode="wait">
@@ -180,15 +182,15 @@ export default function ContactPage() {
                   >
                     <CheckCircle className="w-8 h-8 text-green-400" />
                   </motion.div>
-                  <h3 className="text-lg font-bold text-white">Message Sent!</h3>
+                  <h3 className="text-lg font-bold text-white">{t.contact.messageSent}</h3>
                   <p className="text-sm text-gray-400 text-center max-w-xs">
-                    Thanks <span className="text-white font-bold">{form.name}</span>! We&apos;ve received your message and will reply to <span className="text-brand-cyan">{form.email}</span> shortly.
+                    {language === "en" ? "Thanks" : "សូមអរគុណ"} <span className="text-white font-bold">{form.name}</span>! {language === "en" ? "We've received your message and will reply to" : "យើងបានទទួលសាររបស់អ្នក ហើយនឹងឆ្លើយតបទៅកាន់"} <span className="text-brand-cyan">{form.email}</span> {language === "en" ? "shortly." : "ក្នុងពេលឆាប់ៗនេះ។"}
                   </p>
                   <button
                     onClick={() => { setSubmitted(false); setForm({ name: "", email: "", subject: "", message: "" }); }}
                     className="mt-2 text-xs text-brand-cyan hover:underline font-bold"
                   >
-                    Send Another Message
+                    {t.contact.sendAnother}
                   </button>
                 </motion.div>
               ) : (
@@ -201,55 +203,55 @@ export default function ContactPage() {
                 >
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-gray-400">Full Name *</label>
+                      <label className="text-xs font-bold text-gray-400">{t.contact.labelName}</label>
                       <input
                         name="name"
                         value={form.name}
                         onChange={handleChange}
                         required
-                        placeholder="Your full name"
+                        placeholder={t.contact.placeholderName}
                         className={inputClass}
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-gray-400">Email Address *</label>
+                      <label className="text-xs font-bold text-gray-400">{t.contact.labelEmail}</label>
                       <input
                         name="email"
                         type="email"
                         value={form.email}
                         onChange={handleChange}
                         required
-                        placeholder="you@example.com"
+                        placeholder={t.contact.placeholderEmail}
                         className={inputClass}
                       />
                     </div>
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-gray-400">Subject</label>
+                    <label className="text-xs font-bold text-gray-400">{t.contact.labelSubject}</label>
                     <select
                       name="subject"
                       value={form.subject}
                       onChange={handleChange}
                       className={`${inputClass} cursor-pointer`}
                     >
-                      <option value="" disabled>Select a topic...</option>
-                      <option value="order">Order / Payment Issue</option>
-                      <option value="partnership">Partnership / Business</option>
-                      <option value="refund">Refund Request</option>
-                      <option value="other">Other</option>
+                      <option value="" disabled>{t.contact.placeholderSubject}</option>
+                      <option value="order">{t.contact.optOrder}</option>
+                      <option value="partnership">{t.contact.optPartnership}</option>
+                      <option value="refund">{t.contact.optRefund}</option>
+                      <option value="other">{t.contact.optOther}</option>
                     </select>
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-gray-400">Message *</label>
+                    <label className="text-xs font-bold text-gray-400">{t.contact.labelMessage}</label>
                     <textarea
                       name="message"
                       value={form.message}
                       onChange={handleChange}
                       required
                       rows={5}
-                      placeholder="Describe your issue or inquiry in detail..."
+                      placeholder={t.contact.placeholderMessage}
                       className={`${inputClass} resize-none`}
                     />
                   </div>
@@ -264,12 +266,12 @@ export default function ContactPage() {
                     {loading ? (
                       <>
                         <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                        Sending...
+                        {t.contact.btnSending}
                       </>
                     ) : (
                       <>
                         <Send className="w-4 h-4" />
-                        Send Message
+                        {t.contact.btnSend}
                       </>
                     )}
                   </motion.button>
@@ -286,11 +288,11 @@ export default function ContactPage() {
             transition={{ delay: 0.35, duration: 0.55, ease: "easeOut" }}
           >
             <div className="bg-[#111625]/60 border border-[#1d2438] rounded-2xl p-6 space-y-5">
-              <h3 className="text-sm font-black text-white uppercase tracking-wider">Business Hours</h3>
+              <h3 className="text-sm font-black text-white uppercase tracking-wider">{t.contact.businessHours}</h3>
               {[
-                { day: "Monday – Friday", time: "8:00 AM – 8:00 PM" },
-                { day: "Saturday", time: "9:00 AM – 6:00 PM" },
-                { day: "Sunday", time: "Telegram Only (24/7)" },
+                { day: t.contact.monday, time: t.contact.mondayTime },
+                { day: t.contact.saturday, time: t.contact.saturdayTime },
+                { day: t.contact.sunday, time: t.contact.sundayTime },
               ].map((item, i) => (
                 <div key={i} className="flex items-center justify-between text-xs font-medium border-b border-[#1d2438] last:border-0 pb-3 last:pb-0">
                   <span className="text-gray-400">{item.day}</span>
@@ -300,9 +302,9 @@ export default function ContactPage() {
             </div>
 
             <div className="bg-gradient-to-br from-brand-cyan/10 to-[#111625] border border-brand-cyan/20 rounded-2xl p-6 space-y-3">
-              <h3 className="text-sm font-black text-brand-cyan uppercase tracking-wider">Quick Help</h3>
+              <h3 className="text-sm font-black text-brand-cyan uppercase tracking-wider">{t.contact.quickHelp}</h3>
               <p className="text-xs text-gray-400 leading-relaxed font-medium">
-                For urgent order issues, use Telegram for the fastest response — our bot handles order status checks 24/7.
+                {t.contact.quickHelpDesc}
               </p>
               <a
                 href="https://t.me"
@@ -311,7 +313,7 @@ export default function ContactPage() {
                 className="inline-flex items-center gap-2 bg-[#00b2ff]/10 border border-[#00b2ff]/20 text-[#00b2ff] font-bold text-xs px-4 py-2.5 rounded-xl hover:bg-[#00b2ff]/20 transition-all duration-200"
               >
                 <Send className="w-3.5 h-3.5" />
-                Open Telegram Support
+                {t.contact.openTelegram}
               </a>
             </div>
           </motion.div>

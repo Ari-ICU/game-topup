@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 import Link from "next/link";
 import { Tag, Sparkles, Copy, Check, Zap, Clock, ArrowRight } from "lucide-react";
 import { motion, type Variants, AnimatePresence } from "framer-motion";
+import { useLanguage } from "@/context/LanguageContext";
 
 const containerVariants: Variants = {
   hidden: {},
@@ -35,46 +36,8 @@ interface Deal {
   gradient: string;
 }
 
-const deals: Deal[] = [
-  {
-    title: "Mobile Legends Promo",
-    desc: "Get up to 10% extra diamonds on all packages above $5. Stack on weekends for maximum value.",
-    code: "MLBB10",
-    discount: "10% Extra",
-    badge: "🔥 Most Popular",
-    badgeColor: "from-pink-500 to-purple-600",
-    expiresHours: 47,
-    game: "Mobile Legends",
-    gameSlug: "mobile-legends",
-    gradient: "from-blue-600/10 via-purple-600/5 to-transparent",
-  },
-  {
-    title: "Roblox Bundle Bonus",
-    desc: "Get a free virtual accessory code with every 800 Robux top-up. Limited virtual item inventory!",
-    code: "ROBLOXACC",
-    discount: "Free Item",
-    badge: "🎁 Bonus",
-    badgeColor: "from-emerald-400 to-teal-500",
-    expiresHours: 72,
-    game: "Roblox",
-    gameSlug: "roblox",
-    gradient: "from-emerald-600/10 via-teal-600/5 to-transparent",
-  },
-  {
-    title: "First Top-Up Discount",
-    desc: "Enjoy 5% cashback on your very first transaction with ABA Pay or Bakong KHQR payment.",
-    code: "NEWGAMER",
-    discount: "5% Back",
-    badge: "⭐ New Users",
-    badgeColor: "from-amber-400 to-orange-500",
-    expiresHours: 120,
-    game: "All Games",
-    gameSlug: "games",
-    gradient: "from-amber-600/10 via-orange-600/5 to-transparent",
-  },
-];
-
 function CountdownTimer({ hours }: { hours: number }) {
+  const { t } = useLanguage();
   const [timeLeft, setTimeLeft] = useState(() => {
     const totalSeconds = hours * 3600;
     return {
@@ -104,13 +67,14 @@ function CountdownTimer({ hours }: { hours: number }) {
   return (
     <div className="flex items-center gap-1.5 text-xs font-black text-white">
       <Clock className="w-3 h-3 text-brand-cyan shrink-0" />
-      <span className="text-gray-400 font-medium">Expires in</span>
+      <span className="text-gray-400 font-medium">{t.offers.expiresIn}</span>
       <span className="font-black text-brand-cyan tabular-nums">{pad(timeLeft.h)}:{pad(timeLeft.m)}:{pad(timeLeft.s)}</span>
     </div>
   );
 }
 
 function CopyButton({ code }: { code: string }) {
+  const { t } = useLanguage();
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -125,7 +89,7 @@ function CopyButton({ code }: { code: string }) {
       onClick={handleCopy}
       className="flex items-center gap-2 bg-[#080b11] border border-[#1d2438] hover:border-brand-cyan/40 px-4 py-2.5 rounded-xl transition-all duration-200 group w-full"
     >
-      <span className="text-[11px] font-bold text-gray-400 group-hover:text-gray-300">Code:</span>
+      <span className="text-[11px] font-bold text-gray-400 group-hover:text-gray-300">{t.offers.codeLabel}</span>
       <span className="text-sm font-black text-brand-cyan uppercase flex-1 tracking-widest">{code}</span>
       <AnimatePresence mode="wait">
         {copied ? (
@@ -155,6 +119,47 @@ function CopyButton({ code }: { code: string }) {
 }
 
 export default function OffersPage() {
+  const { t } = useLanguage();
+
+  const deals: Deal[] = [
+    {
+      title: t.offers.deal1Title,
+      desc: t.offers.deal1Desc,
+      code: "MLBB10",
+      discount: "10% Extra",
+      badge: t.offers.deal1Badge,
+      badgeColor: "from-pink-500 to-purple-600",
+      expiresHours: 47,
+      game: "Mobile Legends",
+      gameSlug: "mobile-legends",
+      gradient: "from-blue-600/10 via-purple-600/5 to-transparent",
+    },
+    {
+      title: t.offers.deal2Title,
+      desc: t.offers.deal2Desc,
+      code: "ROBLOXACC",
+      discount: "Free Item",
+      badge: t.offers.deal2Badge,
+      badgeColor: "from-emerald-400 to-teal-500",
+      expiresHours: 72,
+      game: "Roblox",
+      gameSlug: "roblox",
+      gradient: "from-emerald-600/10 via-teal-600/5 to-transparent",
+    },
+    {
+      title: t.offers.deal3Title,
+      desc: t.offers.deal3Desc,
+      code: "NEWGAMER",
+      discount: "5% Back",
+      badge: t.offers.deal3Badge,
+      badgeColor: "from-amber-400 to-orange-500",
+      expiresHours: 120,
+      game: "All Games",
+      gameSlug: "games",
+      gradient: "from-amber-600/10 via-orange-600/5 to-transparent",
+    },
+  ];
+
   return (
     <div className="flex flex-col min-h-screen bg-[#080b11] text-gray-200">
       <Navbar />
@@ -173,13 +178,13 @@ export default function OffersPage() {
             transition={{ duration: 2.5, repeat: Infinity }}
           >
             <Sparkles className="w-3 h-3" />
-            Limited Time Only
+            {t.offers.badge}
           </motion.div>
           <h1 className="text-4xl sm:text-5xl font-black text-white tracking-tight">
-            Special <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-cyan to-cyan-400">Offers</span>
+            {t.offers.title} <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-cyan to-cyan-400">{t.offers.titleHighlight}</span>
           </h1>
           <p className="text-sm text-gray-400 font-medium leading-relaxed">
-            Grab the best deals, discounts, and bonuses for your favorite games. Copy the promo code and use it at checkout.
+            {t.offers.subtitle}
           </p>
         </motion.div>
 
@@ -241,7 +246,7 @@ export default function OffersPage() {
                     whileTap={{ scale: 0.97 }}
                   >
                     <Zap className="w-3.5 h-3.5" />
-                    Use This Offer
+                    {t.offers.useOffer}
                     <ArrowRight className="w-3 h-3" />
                   </motion.div>
                 </Link>
@@ -259,9 +264,9 @@ export default function OffersPage() {
         >
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,229,255,0.05)_0%,transparent_70%)]" />
           <div className="relative space-y-4">
-            <h2 className="text-2xl font-black text-white">More Deals Coming Soon</h2>
+            <h2 className="text-2xl font-black text-white">{t.offers.comingSoonTitle}</h2>
             <p className="text-sm text-gray-400 font-medium max-w-md mx-auto">
-              Follow us on Telegram to get instant notifications for flash sales and exclusive promotions.
+              {t.offers.comingSoonDesc}
             </p>
             <a
               href="https://t.me"
@@ -270,7 +275,7 @@ export default function OffersPage() {
               className="inline-flex items-center gap-2 bg-brand-cyan hover:bg-brand-cyan-hover text-white font-extrabold text-sm px-8 py-3 rounded-xl shadow-[0_0_20px_rgba(0,229,255,0.25)] hover:shadow-[0_0_35px_rgba(0,229,255,0.5)] transition-all duration-200"
             >
               <Sparkles className="w-4 h-4" />
-              Join Telegram Channel
+              {t.offers.joinTelegram}
             </a>
           </div>
         </motion.div>

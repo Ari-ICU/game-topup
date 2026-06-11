@@ -90,10 +90,10 @@ export default function Navbar() {
   }, []);
 
   const getLoyaltyDetails = (xpVal: number) => {
-    if (xpVal >= 2000) return { name: "Platinum", color: "text-cyan-400 bg-cyan-400/10 border-cyan-400/20" };
-    if (xpVal >= 500) return { name: "Gold", color: "text-yellow-500 bg-yellow-500/10 border-yellow-500/20" };
-    if (xpVal >= 100) return { name: "Silver", color: "text-gray-400 bg-gray-400/10 border-gray-400/20" };
-    return { name: "Bronze", color: "text-amber-600 bg-amber-600/10 border-amber-600/20" };
+    if (xpVal >= 2000) return { nameKey: "platinumName" as const, color: "text-cyan-400 bg-cyan-400/10 border-cyan-400/20" };
+    if (xpVal >= 500) return { nameKey: "goldName" as const, color: "text-yellow-500 bg-yellow-500/10 border-yellow-500/20" };
+    if (xpVal >= 100) return { nameKey: "silverName" as const, color: "text-gray-400 bg-gray-400/10 border-gray-400/20" };
+    return { nameKey: "bronzeName" as const, color: "text-amber-600 bg-amber-600/10 border-amber-600/20" };
   };
   const loyalty = getLoyaltyDetails(xp);
 
@@ -148,7 +148,7 @@ export default function Navbar() {
           >
             {/* Loyalty Badge */}
             <Link href="/loyalty" className={`flex items-center space-x-1.5 px-3 py-1.5 text-xs font-bold rounded-full border ${loyalty.color}`}>
-              <span>{t.nav.tier}: {loyalty.name}</span>
+              <span>{t.nav.tier}: {t.loyalty[loyalty.nameKey]}</span>
               <span className="text-[10px] opacity-60">({xp} XP)</span>
             </Link>
 
@@ -312,7 +312,7 @@ export default function Navbar() {
                 onClick={() => setIsOpen(false)}
                 className={`col-span-2 flex items-center justify-center space-x-1.5 py-2.5 rounded-lg border font-bold text-xs ${loyalty.color}`}
               >
-                <span>{t.nav.tier}: {loyalty.name} ({xp} XP)</span>
+                <span>{t.nav.tier}: {t.loyalty[loyalty.nameKey]} ({xp} XP)</span>
               </Link>
             </motion.div>
           </motion.div>

@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { MessageSquare, Send, Mail, HelpCircle } from "lucide-react";
 import { motion, type Variants } from "framer-motion";
+import { useLanguage } from "@/context/LanguageContext";
 
 const containerVariants: Variants = {
   hidden: {},
@@ -31,42 +32,44 @@ const faqVariants: Variants = {
 };
 
 export default function SupportPage() {
+  const { t } = useLanguage();
+
   const contacts = [
     {
       icon: Send,
-      title: "Telegram Support",
-      detail: "@GamexCambodia_Bot",
-      action: "Chat on Telegram",
+      title: t.supportPage.telegramTitle,
+      detail: t.supportPage.telegramDetail,
+      action: t.supportPage.telegramAction,
       link: "https://t.me",
     },
     {
       icon: MessageSquare,
-      title: "Live Chat Support",
-      detail: "Available on our site 24/7",
-      action: "Start Live Chat",
+      title: t.supportPage.liveChatTitle,
+      detail: t.supportPage.liveChatDetail,
+      action: t.supportPage.liveChatAction,
       link: "#",
     },
     {
       icon: Mail,
-      title: "Email Assistance",
-      detail: "support@gamexcambodia.com",
-      action: "Send an Email",
+      title: t.supportPage.emailTitle,
+      detail: t.supportPage.emailDetail,
+      action: t.supportPage.emailAction,
       link: "mailto:support@gamexcambodia.com",
     },
   ];
 
   const faqs = [
     {
-      q: "How long does it take for the diamonds/credits to arrive?",
-      a: "Thanks to our direct API integrations, most top-ups are processed instantly and credited to your game account within 10 to 30 seconds of completing payment.",
+      q: t.supportPage.faq1q,
+      a: t.supportPage.faq1a,
     },
     {
-      q: "What local payment methods can I use?",
-      a: "We accept ABA Pay, Wing Bank, ACLEDA ToanChet, and Chip Mong Pay. All payments use official secure gateways.",
+      q: t.supportPage.faq2q,
+      a: t.supportPage.faq2a,
     },
     {
-      q: "I entered the wrong Player ID. What should I do?",
-      a: "If you entered an incorrect ID, please message our 24/7 Telegram Support immediately with your transaction reference. If the order has not been filled, we will help correct it.",
+      q: t.supportPage.faq3q,
+      a: t.supportPage.faq3a,
     },
   ];
 
@@ -83,10 +86,10 @@ export default function SupportPage() {
           transition={{ duration: 0.6, ease: "easeOut" }}
         >
           <h1 className="text-4xl font-black text-white tracking-tight sm:text-5xl">
-            Support <span className="text-brand-cyan">Center</span>
+            {t.supportPage.title} <span className="text-brand-cyan">{t.supportPage.titleHighlight}</span>
           </h1>
           <p className="text-base text-gray-400 font-medium leading-relaxed">
-            Have questions, billing issues, or technical problems? Our local team is here to assist you 24/7.
+            {t.supportPage.subtitle}
           </p>
         </motion.div>
 
@@ -137,7 +140,7 @@ export default function SupportPage() {
             transition={{ duration: 0.5, ease: "easeOut" }}
           >
             <HelpCircle className="w-6 h-6 text-brand-cyan" />
-            <span>Frequently Asked Questions</span>
+            <span>{t.supportPage.faqTitle}</span>
           </motion.h2>
           <motion.div
             className="space-y-4"

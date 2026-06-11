@@ -3,13 +3,7 @@
 import React from "react";
 import { motion, type Variants } from "framer-motion";
 import { Users, Zap, ShieldCheck, Star } from "lucide-react";
-
-const stats = [
-  { icon: Users, value: "50,000+", label: "Gamers Served", color: "text-brand-cyan" },
-  { icon: Zap, value: "< 15s", label: "Avg. Delivery", color: "text-emerald-400" },
-  { icon: ShieldCheck, value: "100%", label: "Secure Payments", color: "text-purple-400" },
-  { icon: Star, value: "4.9/5", label: "Customer Rating", color: "text-amber-400" },
-];
+import { useLanguage } from "@/context/LanguageContext";
 
 const containerVariants: Variants = {
   hidden: {},
@@ -26,6 +20,15 @@ const itemVariants: Variants = {
 };
 
 export default function StatsBar() {
+  const { t } = useLanguage();
+
+  const stats = [
+    { icon: Users, value: "50,000+", label: t.stats.gamersServed, color: "text-brand-cyan" },
+    { icon: Zap, value: "< 15s", label: t.stats.avgDelivery, color: "text-emerald-400" },
+    { icon: ShieldCheck, value: "100%", label: t.stats.securePayments, color: "text-purple-400" },
+    { icon: Star, value: "4.9/5", label: t.stats.customerRating, color: "text-amber-400" },
+  ];
+
   return (
     <section className="py-8 px-4 sm:px-6 lg:px-8 border-y border-[#1d2438]/60 bg-[#090c15]/60 backdrop-blur-sm">
       <motion.div

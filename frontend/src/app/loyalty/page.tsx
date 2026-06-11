@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { ShieldCheck, Star } from "lucide-react";
 import { motion, type Variants } from "framer-motion";
+import { useLanguage } from "@/context/LanguageContext";
 
 const containerVariants: Variants = {
   hidden: {},
@@ -22,11 +23,13 @@ const cardVariants: Variants = {
 };
 
 export default function LoyaltyPage() {
+  const { t } = useLanguage();
+
   const tiers = [
-    { name: "Bronze Level", pts: "0 - 999 XP", color: "text-amber-600", border: "border-amber-600/20", desc: "Standard pricing and secure instant deliveries." },
-    { name: "Silver Level", pts: "1,000 - 4,999 XP", color: "text-gray-400", border: "border-gray-400/20", desc: "Unlock 1% reward points on every transaction." },
-    { name: "Gold Level", pts: "5,000 - 19,999 XP", color: "text-yellow-500", border: "border-yellow-500/20", desc: "Unlock 2% reward points and priority queue delivery." },
-    { name: "Platinum Level", pts: "20,000+ XP", color: "text-cyan-400", border: "border-cyan-400/20", desc: "Unlock 3% reward points, VIP customer service, and early access to promos." },
+    { name: t.loyalty.bronzeName, pts: t.loyalty.bronzePts, color: "text-amber-600", border: "border-amber-600/20", desc: t.loyalty.bronzeDesc },
+    { name: t.loyalty.silverName, pts: t.loyalty.silverPts, color: "text-gray-400", border: "border-gray-400/20", desc: t.loyalty.silverDesc },
+    { name: t.loyalty.goldName, pts: t.loyalty.goldPts, color: "text-yellow-500", border: "border-yellow-500/20", desc: t.loyalty.goldDesc },
+    { name: t.loyalty.platinumName, pts: t.loyalty.platinumPts, color: "text-cyan-400", border: "border-cyan-400/20", desc: t.loyalty.platinumDesc },
   ];
 
   return (
@@ -41,10 +44,10 @@ export default function LoyaltyPage() {
           transition={{ duration: 0.6, ease: "easeOut" }}
         >
           <h1 className="text-4xl font-black text-white tracking-tight">
-            Loyalty <span className="text-brand-cyan">Program</span>
+            {t.loyalty.title} <span className="text-brand-cyan">{t.loyalty.titleHighlight}</span>
           </h1>
           <p className="text-sm text-gray-400 font-medium leading-relaxed">
-            Earn experience points (XP) and points with every transaction to rank up and claim premium discounts!
+            {t.loyalty.subtitle}
           </p>
         </motion.div>
 
@@ -87,10 +90,10 @@ export default function LoyaltyPage() {
         >
           <div className="flex items-center gap-3">
             <ShieldCheck className="w-5 h-5 text-brand-cyan" />
-            <h2 className="text-lg font-bold text-white">How Points are Earned</h2>
+            <h2 className="text-lg font-bold text-white">{t.loyalty.howEarnedTitle}</h2>
           </div>
           <p className="text-sm text-gray-400 leading-relaxed font-medium">
-            Every dollar spent on a top-up transaction earns you XP. The higher your tier, the more bonus points you accumulate per transaction. Points can be redeemed for discounts on future top-ups.
+            {t.loyalty.howEarnedBody}
           </p>
         </motion.div>
       </main>

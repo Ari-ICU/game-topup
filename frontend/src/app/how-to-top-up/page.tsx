@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 import Link from "next/link";
 import { Gamepad2, UserCheck, CreditCard, Send, ChevronRight, CheckCircle } from "lucide-react";
 import { motion, type Variants } from "framer-motion";
+import { useLanguage } from "@/context/LanguageContext";
 
 const containerVariants: Variants = {
   hidden: {},
@@ -21,64 +22,6 @@ const stepVariants: Variants = {
     transition: { duration: 0.55, ease: "easeOut" as const },
   },
 };
-
-const steps = [
-  {
-    icon: Gamepad2,
-    step: "01",
-    title: "Select Game",
-    desc: "Browse our catalog of popular games. Choose the title you want to top up from the games grid.",
-    tip: "All available games are listed on the Games page.",
-    color: "from-blue-500 to-cyan-400",
-    glow: "rgba(6,182,212,0.15)",
-  },
-  {
-    icon: UserCheck,
-    step: "02",
-    title: "Enter Player ID",
-    desc: "Input your in-game Player ID and Zone ID (if required). Use the Verify button to confirm your account name before paying.",
-    tip: "Find your Player ID inside your game's profile or settings.",
-    color: "from-purple-500 to-pink-400",
-    glow: "rgba(168,85,247,0.15)",
-  },
-  {
-    icon: CreditCard,
-    step: "03",
-    title: "Scan KHQR",
-    desc: "Select your package denomination, then pay securely via KHQR. Open any Cambodian banking app and scan the generated QR code.",
-    tip: "Supports ABA Pay, ACLEDA, Wing, and all Bakong-connected apps.",
-    color: "from-rose-500 to-orange-400",
-    glow: "rgba(226,26,34,0.15)",
-  },
-  {
-    icon: Send,
-    step: "04",
-    title: "Receive Credits",
-    desc: "Our system detects your payment instantly. Game credits are delivered to your account within 15 seconds via our top-up API.",
-    tip: "You will receive an on-screen confirmation when complete.",
-    color: "from-emerald-500 to-teal-400",
-    glow: "rgba(16,185,129,0.15)",
-  },
-];
-
-const faqs = [
-  {
-    q: "How fast is the delivery?",
-    a: "Typically under 15 seconds after payment confirmation. Complex orders may take up to 3 minutes.",
-  },
-  {
-    q: "Which payment methods are supported?",
-    a: "We support all Bakong KHQR-connected apps including ABA Pay, ACLEDA, Cambodian Public Bank, Wing, and more.",
-  },
-  {
-    q: "What if my top-up fails?",
-    a: "Reach our Telegram support bot immediately with your Order ID. We guarantee a full refund or retry within 24 hours.",
-  },
-  {
-    q: "Do I need an account to top up?",
-    a: "No! You only need your in-game Player ID. No registration or login is required on our platform.",
-  },
-];
 
 function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
@@ -111,6 +54,66 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 }
 
 export default function HowToTopUpPage() {
+  const { t } = useLanguage();
+
+  const steps = [
+    {
+      icon: Gamepad2,
+      step: "01",
+      title: t.howToTopUp.step01Title,
+      desc: t.howToTopUp.step01Desc,
+      tip: t.howToTopUp.step01Tip,
+      color: "from-blue-500 to-cyan-400",
+      glow: "rgba(6,182,212,0.15)",
+    },
+    {
+      icon: UserCheck,
+      step: "02",
+      title: t.howToTopUp.step02Title,
+      desc: t.howToTopUp.step02Desc,
+      tip: t.howToTopUp.step02Tip,
+      color: "from-purple-500 to-pink-400",
+      glow: "rgba(168,85,247,0.15)",
+    },
+    {
+      icon: CreditCard,
+      step: "03",
+      title: t.howToTopUp.step03Title,
+      desc: t.howToTopUp.step03Desc,
+      tip: t.howToTopUp.step03Tip,
+      color: "from-rose-500 to-orange-400",
+      glow: "rgba(226,26,34,0.15)",
+    },
+    {
+      icon: Send,
+      step: "04",
+      title: t.howToTopUp.step04Title,
+      desc: t.howToTopUp.step04Desc,
+      tip: t.howToTopUp.step04Tip,
+      color: "from-emerald-500 to-teal-400",
+      glow: "rgba(16,185,129,0.15)",
+    },
+  ];
+
+  const faqs = [
+    {
+      q: t.howToTopUp.faq1q,
+      a: t.howToTopUp.faq1a,
+    },
+    {
+      q: t.howToTopUp.faq2q,
+      a: t.howToTopUp.faq2a,
+    },
+    {
+      q: t.howToTopUp.faq3q,
+      a: t.howToTopUp.faq3a,
+    },
+    {
+      q: t.howToTopUp.faq4q,
+      a: t.howToTopUp.faq4a,
+    },
+  ];
+
   return (
     <div className="flex flex-col min-h-screen bg-[#080b11] text-gray-200">
       <Navbar />
@@ -127,16 +130,16 @@ export default function HowToTopUpPage() {
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest bg-brand-cyan/10 text-brand-cyan border border-brand-cyan/20"
           >
             <CheckCircle className="w-3 h-3" />
-            Instant Delivery Guaranteed
+            {t.howToTopUp.badge}
           </motion.div>
           <h1 className="text-4xl sm:text-5xl font-black text-white tracking-tight">
-            How to{" "}
+            {t.howToTopUp.title}{" "}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-cyan to-cyan-400">
-              Top Up
+              {t.howToTopUp.titleHighlight}
             </span>
           </h1>
           <p className="text-sm text-gray-400 font-medium leading-relaxed">
-            Top up your account in under a minute. No registration needed — just your Player ID and a KHQR payment.
+            {t.howToTopUp.subtitle}
           </p>
         </motion.div>
 
@@ -171,7 +174,7 @@ export default function HowToTopUpPage() {
                   {/* Step number */}
                   <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
                     <span className={`inline-block bg-gradient-to-r ${item.color} text-black text-[10px] font-black px-3 py-1 rounded-full tracking-widest shadow-md`}>
-                      STEP {item.step}
+                      {t.howToTopUp.step} {item.step}
                     </span>
                   </div>
 
@@ -212,9 +215,9 @@ export default function HowToTopUpPage() {
         >
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,229,255,0.06)_0%,transparent_65%)]" />
           <div className="relative space-y-5">
-            <h2 className="text-2xl font-black text-white">Ready to Top Up?</h2>
+            <h2 className="text-2xl font-black text-white">{t.howToTopUp.ctaTitle}</h2>
             <p className="text-sm text-gray-400 font-medium max-w-sm mx-auto">
-              Browse our game catalog and get your credits delivered instantly.
+              {t.howToTopUp.ctaDesc}
             </p>
             <Link href="/games">
               <motion.button
@@ -223,7 +226,7 @@ export default function HowToTopUpPage() {
                 whileTap={{ scale: 0.97 }}
               >
                 <Gamepad2 className="w-4 h-4" />
-                Browse Games
+                {t.howToTopUp.ctaBrowse}
               </motion.button>
             </Link>
           </div>
@@ -237,8 +240,8 @@ export default function HowToTopUpPage() {
           transition={{ delay: 0.7, duration: 0.5 }}
         >
           <div className="text-center space-y-2">
-            <h2 className="text-2xl font-black text-white">Frequently Asked Questions</h2>
-            <p className="text-sm text-gray-400 font-medium">Quick answers to common questions about our service.</p>
+            <h2 className="text-2xl font-black text-white">{t.howToTopUp.faqTitle}</h2>
+            <p className="text-sm text-gray-400 font-medium">{t.howToTopUp.faqSubtitle}</p>
           </div>
           <div className="max-w-2xl mx-auto space-y-3">
             {faqs.map((faq, i) => (

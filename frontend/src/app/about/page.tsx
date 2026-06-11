@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Users, Award, Shield } from "lucide-react";
 import { motion, type Variants } from "framer-motion";
+import { useLanguage } from "@/context/LanguageContext";
 
 const containerVariants: Variants = {
   hidden: {},
@@ -31,10 +32,12 @@ const fadeUpVariants: Variants = {
 };
 
 export default function AboutPage() {
+  const { t } = useLanguage();
+
   const stats = [
-    { icon: Users, value: "100K+", label: "Happy Gamers" },
-    { icon: Award, value: "15s", label: "Average Delivery Time" },
-    { icon: Shield, value: "99.9%", label: "Transaction Security" },
+    { icon: Users, value: "100K+", label: t.about.happyGamers },
+    { icon: Award, value: "15s", label: t.about.avgDeliveryTime },
+    { icon: Shield, value: "99.9%", label: t.about.transactionSecurity },
   ];
 
   return (
@@ -50,10 +53,10 @@ export default function AboutPage() {
           transition={{ duration: 0.6, ease: "easeOut" }}
         >
           <h1 className="text-4xl font-black text-white tracking-tight sm:text-5xl">
-            About <span className="text-brand-cyan">GAMEX CAMBODIA</span>
+            {t.about.title} <span className="text-brand-cyan">{t.about.brand}</span>
           </h1>
           <p className="text-base text-gray-400 font-medium leading-relaxed">
-            Cambodia&apos;s premier gaming top-up store, serving gamers with instant digital deliveries and local payment integrations.
+            {t.about.subtitle}
           </p>
         </motion.div>
 
@@ -96,20 +99,20 @@ export default function AboutPage() {
         >
           <motion.div
             variants={fadeUpVariants}
-            className="bg-[#111625]/30 border border-[#1d2438]/50 hover:border-brand-cyan/20 p-8 rounded-2xl space-y-4 transition duration-300"
+            className="bg-[#111625]/30 border border-[#1d2438]/50 p-8 rounded-2xl space-y-4 transition duration-300"
           >
-            <h2 className="text-xl font-bold text-white">Who We Are</h2>
+            <h2 className="text-xl font-bold text-white">{t.about.whoWeAre}</h2>
             <p className="text-sm text-gray-400 leading-relaxed font-medium">
-              GAMEX CAMBODIA is built by gamers, for gamers. We understand the excitement of leveling up and the need for seamless, uninterrupted gameplay. Our platform connects directly with global publishers and local payment networks to deliver virtual currency instant-straight to your account.
+              {t.about.whoWeAreBody}
             </p>
           </motion.div>
           <motion.div
             variants={fadeUpVariants}
-            className="bg-[#111625]/30 border border-[#1d2438]/50 hover:border-brand-cyan/20 p-8 rounded-2xl space-y-4 transition duration-300"
+            className="bg-[#111625]/30 border border-[#1d2438]/50 p-8 rounded-2xl space-y-4 transition duration-300"
           >
-            <h2 className="text-xl font-bold text-white">Our Mission</h2>
+            <h2 className="text-xl font-bold text-white">{t.about.ourMission}</h2>
             <p className="text-sm text-gray-400 leading-relaxed font-medium">
-              Our goal is simple: to make digital entertainment top-ups accessible, secure, and lightning-fast for everyone in Cambodia. By integrating local payment systems such as ABA Bank, Wing, ACLEDA, and Chip Mong, we make virtual payments hassle-free and completely secure.
+              {t.about.ourMissionBody}
             </p>
           </motion.div>
         </motion.div>
