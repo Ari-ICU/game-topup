@@ -1,9 +1,9 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { 
-  Settings, 
-  Save, 
-  CheckCircle, 
+import {
+  Settings,
+  Save,
+  CheckCircle,
   AlertTriangle,
   Building,
   User,
@@ -15,7 +15,10 @@ import {
   X,
   Globe,
   Eye,
-  EyeOff
+  EyeOff,
+  ShieldCheck,
+  Zap,
+  Info,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -44,10 +47,142 @@ interface PromoCode {
   createdAt: string;
 }
 
+// ─── Reusable Field ───────────────────────────────────────────────────────────
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider">
+        {label}
+      </label>
+      {children}
+      {hint && <p className="text-[11px] text-gray-500 leading-relaxed">{hint}</p>}
+    </div>
+  );
+}
+
+// ─── Reusable Input ───────────────────────────────────────────────────────────
+function Input({
+  icon: Icon,
+  suffix,
+  ...props
+}: React.InputHTMLAttributes<HTMLInputElement> & {
+  icon?: React.ElementType;
+  suffix?: React.ReactNode;
+}) {
+  return (
+    <div className="relative">
+      {Icon && (
+        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-500">
+          <Icon className="w-4 h-4" />
+        </div>
+      )}
+      <input
+        {...props}
+        className={`block w-full py-2.5 bg-[#080c15] border border-[#1e2840] rounded-lg text-sm text-white placeholder-gray-600
+          focus:outline-none focus:ring-2 focus:ring-brand-cyan/25 focus:border-brand-cyan/60 transition-all
+          ${Icon ? "pl-10" : "pl-3.5"} ${suffix ? "pr-10" : "pr-3.5"}
+          ${props.className ?? ""}`}
+      />
+      {suffix && (
+        <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center">
+          {suffix}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Alert Banner ─────────────────────────────────────────────────────────────
+function AlertBanner({
+  type,
+  message,
+}: {
+  type: "success" | "error" | "warning";
+  message: string;
+}) {
+  const styles = {
+    success: "bg-green-500/8 border-green-500/20 text-green-400",
+    error: "bg-red-500/8 border-red-500/20 text-red-400",
+    warning: "bg-amber-500/8 border-amber-500/20 text-amber-400",
+  };
+  const Icon = type === "success" ? CheckCircle : AlertTriangle;
+  return (
+    <div className={`flex items-start gap-3 p-3.5 rounded-xl border text-xs font-medium ${styles[type]}`}>
+      <Icon className="w-4 h-4 shrink-0 mt-0.5" />
+      <span className="leading-relaxed">{message}</span>
+    </div>
+  );
+}
+
+// ─── Section Card ─────────────────────────────────────────────────────────────
+function SectionCard({
+  title,
+  subtitle,
+  icon: Icon,
+  accent = "cyan",
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  icon: React.ElementType;
+  accent?: "cyan" | "purple" | "amber";
+  children: React.ReactNode;
+}) {
+  const accentMap = {
+    cyan: "text-brand-cyan bg-brand-cyan/10 border-brand-cyan/20",
+    purple: "text-brand-purple bg-brand-purple/10 border-brand-purple/20",
+    amber: "text-amber-400 bg-amber-500/10 border-amber-500/20",
+  };
+  return (
+    <div className="rounded-xl bg-[#0e1420] border border-[#1e2840] overflow-hidden">
+      <div className="flex items-center gap-3 px-5 py-4 border-b border-[#1e2840]">
+        <div className={`p-1.5 rounded-lg border ${accentMap[accent]}`}>
+          <Icon className="w-4 h-4" />
+        </div>
+        <div>
+          <h3 className="text-sm font-bold text-white">{title}</h3>
+          {subtitle && <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>}
+        </div>
+      </div>
+      <div className="p-5">{children}</div>
+    </div>
+  );
+}
+
+// ─── Provider Section ─────────────────────────────────────────────────────────
+function ProviderSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <div className="h-px flex-1 bg-[#1e2840]" />
+        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-2">
+          {title}
+        </span>
+        <div className="h-px flex-1 bg-[#1e2840]" />
+      </div>
+      {children}
+    </div>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 export default function AdminSettings() {
   const [activeTab, setActiveTab] = useState<"khqr" | "providers" | "promos">("khqr");
 
-  // KHQR settings state
   const [settings, setSettings] = useState<KhqrSettingsObj>({
     id: "",
     accountId: "",
@@ -60,7 +195,7 @@ export default function AdminSettings() {
     uniPinApiUrl: "",
     topUpLiveMerchantId: "",
     topUpLiveApiKey: "",
-    topUpLiveApiUrl: ""
+    topUpLiveApiUrl: "",
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -70,7 +205,6 @@ export default function AdminSettings() {
   const [showUniPinKey, setShowUniPinKey] = useState(false);
   const [showTopUpLiveKey, setShowTopUpLiveKey] = useState(false);
 
-  // Promo Codes state
   const [promos, setPromos] = useState<PromoCode[]>([]);
   const [promosLoading, setPromosLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -85,11 +219,7 @@ export default function AdminSettings() {
     setError("");
     try {
       const res = await fetch("/api/admin/settings");
-
-      if (!res.ok) {
-        throw new Error(`Failed to fetch settings: ${res.statusText}`);
-      }
-
+      if (!res.ok) throw new Error(`Failed to fetch settings: ${res.statusText}`);
       const data = await res.json();
       setSettings({
         id: data.id || "",
@@ -103,10 +233,9 @@ export default function AdminSettings() {
         uniPinApiUrl: data.uniPinApiUrl || "https://api.unipin.com/v1/topup",
         topUpLiveMerchantId: data.topUpLiveMerchantId || "",
         topUpLiveApiKey: data.topUpLiveApiKey || "",
-        topUpLiveApiUrl: data.topUpLiveApiUrl || "https://api.topuplive.com/v1/order"
+        topUpLiveApiUrl: data.topUpLiveApiUrl || "https://api.topuplive.com/v1/order",
       });
     } catch (err: any) {
-      console.error(err);
       setError(err.message || "Failed to retrieve configuration settings.");
     } finally {
       setLoading(false);
@@ -118,49 +247,34 @@ export default function AdminSettings() {
     setPromoError("");
     try {
       const res = await fetch("/api/admin/promos");
-      if (!res.ok) {
-        throw new Error(`Failed to fetch promo codes: ${res.statusText}`);
-      }
+      if (!res.ok) throw new Error(`Failed to fetch promo codes: ${res.statusText}`);
       const data = await res.json();
       setPromos(data || []);
     } catch (err: any) {
-      console.error(err);
       setPromoError(err.message || "Failed to retrieve active promo codes.");
     } finally {
       setPromosLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchSettings();
-  }, []);
-
-  useEffect(() => {
-    if (activeTab === "promos") {
-      fetchPromos();
-    }
-  }, [activeTab]);
+  useEffect(() => { fetchSettings(); }, []);
+  useEffect(() => { if (activeTab === "promos") fetchPromos(); }, [activeTab]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setMessage("");
     setError("");
-
     try {
       const res = await fetch("/api/admin/settings", {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(settings),
       });
-
       if (!res.ok) {
         const errData = await res.json();
         throw new Error(errData.error || `Failed to save settings: ${res.statusText}`);
       }
-
       const updated = await res.json();
       setSettings({
         id: updated.id,
@@ -174,15 +288,11 @@ export default function AdminSettings() {
         uniPinApiUrl: updated.uniPinApiUrl || "https://api.unipin.com/v1/topup",
         topUpLiveMerchantId: updated.topUpLiveMerchantId || "",
         topUpLiveApiKey: updated.topUpLiveApiKey || "",
-        topUpLiveApiUrl: updated.topUpLiveApiUrl || "https://api.topuplive.com/v1/order"
+        topUpLiveApiUrl: updated.topUpLiveApiUrl || "https://api.topuplive.com/v1/order",
       });
-
-      setMessage("System Settings successfully saved! Updates are now globally active across checkout payment paths and reseller top-up routing workflows.");
-      
-      // Auto-dismiss message after 5s
+      setMessage("Settings saved successfully.");
       setTimeout(() => setMessage(""), 5000);
     } catch (err: any) {
-      console.error(err);
       setError(err.message || "Failed to save settings to the database.");
     } finally {
       setSaving(false);
@@ -193,38 +303,24 @@ export default function AdminSettings() {
     e.preventDefault();
     setPromoError("");
     setPromoMessage("");
-    if (!newPromoCode) {
-      setPromoError("Promo code cannot be empty.");
-      return;
-    }
-    if (newPromoDiscount <= 0 || newPromoDiscount > 100) {
-      setPromoError("Discount percentage must be between 1 and 100.");
-      return;
-    }
-    if (newPromoMaxUses <= 0) {
-      setPromoError("Max uses must be greater than 0.");
-      return;
-    }
-
+    if (!newPromoCode) { setPromoError("Promo code cannot be empty."); return; }
+    if (newPromoDiscount <= 0 || newPromoDiscount > 100) { setPromoError("Discount must be between 1–100%."); return; }
+    if (newPromoMaxUses <= 0) { setPromoError("Max uses must be greater than 0."); return; }
     try {
       const res = await fetch("/api/admin/promos", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           code: newPromoCode.trim().toUpperCase(),
           discount: newPromoDiscount / 100,
           maxUses: newPromoMaxUses,
         }),
       });
-
       if (!res.ok) {
         const errData = await res.json();
         throw new Error(errData.error || "Failed to create promo code.");
       }
-
-      setPromoMessage(`Promo code '${newPromoCode.trim().toUpperCase()}' created successfully!`);
+      setPromoMessage(`Code "${newPromoCode.trim().toUpperCase()}" created successfully.`);
       setNewPromoCode("");
       setNewPromoDiscount(10);
       setNewPromoMaxUses(100);
@@ -232,56 +328,37 @@ export default function AdminSettings() {
       fetchPromos();
       setTimeout(() => setPromoMessage(""), 5000);
     } catch (err: any) {
-      console.error(err);
       setPromoError(err.message || "Failed to create promo code.");
     }
   };
 
   const handleDeletePromo = async (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this promo code? This action is irreversible.")) {
-      return;
-    }
+    if (!window.confirm("Delete this promo code? This cannot be undone.")) return;
     setPromoError("");
     setPromoMessage("");
     try {
-      const res = await fetch(`/api/admin/promos/${id}`, {
-        method: "DELETE",
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to delete promo code.");
-      }
-
-      setPromoMessage("Promo code successfully deleted.");
+      const res = await fetch(`/api/admin/promos/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete promo code.");
+      setPromoMessage("Promo code deleted.");
       fetchPromos();
       setTimeout(() => setPromoMessage(""), 5000);
     } catch (err: any) {
-      console.error(err);
       setPromoError(err.message || "Failed to delete promo code.");
     }
   };
 
   const handleTogglePromo = async (id: string, currentIsActive: boolean) => {
     setPromoError("");
-    // Optimistic UI update
-    setPromos((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, isActive: !currentIsActive } : p))
-    );
+    setPromos((prev) => prev.map((p) => (p.id === id ? { ...p, isActive: !currentIsActive } : p)));
     try {
       const res = await fetch(`/api/admin/promos/${id}/toggle`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isActive: !currentIsActive }),
       });
-      if (!res.ok) {
-        throw new Error("Failed to toggle promo status.");
-      }
+      if (!res.ok) throw new Error("Failed to toggle promo status.");
     } catch (err: any) {
-      console.error(err);
-      // Revert on failure
-      setPromos((prev) =>
-        prev.map((p) => (p.id === id ? { ...p, isActive: currentIsActive } : p))
-      );
+      setPromos((prev) => prev.map((p) => (p.id === id ? { ...p, isActive: currentIsActive } : p)));
       setPromoError(err.message || "Failed to update promo status.");
     }
   };
@@ -289,547 +366,477 @@ export default function AdminSettings() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
-        <div className="w-10 h-10 border-4 border-brand-cyan border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-gray-400 font-medium">Fetching bank configs...</p>
+        <div className="w-9 h-9 border-[3px] border-brand-cyan border-t-transparent rounded-full animate-spin" />
+        <p className="text-gray-500 text-sm font-medium">Loading configuration...</p>
       </div>
     );
   }
 
+  const tabs = [
+    { id: "khqr" as const, label: "KHQR Merchant", icon: ShieldCheck },
+    { id: "providers" as const, label: "API Providers", icon: Zap },
+    { id: "promos" as const, label: "Promo Codes", icon: Ticket },
+  ];
+
   return (
     <div className="space-y-6 w-full">
-      {/* Page Title */}
-      <div>
-        <h1 className="text-2xl font-extrabold text-white tracking-tight flex items-center gap-2">
-          {activeTab === "khqr" && "KHQR Credentials"}
-          {activeTab === "providers" && "Provider API Settings"}
-          {activeTab === "promos" && "Promo Codes Manager"}{" "}
-          <Sparkles className="w-6 h-6 text-brand-cyan" />
-        </h1>
-        <p className="text-gray-400 text-sm mt-1">
-          {activeTab === "khqr" && "Configure active Bakong merchant information details for payments."}
-          {activeTab === "providers" && "Configure credentials and endpoint parameters for Smile One & UniPin APIs."}
-          {activeTab === "promos" && "Create, monitor, and delete checkout discount codes."}
-        </p>
+      {/* ── Page Header ─────────────────────────────────────────────────────── */}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-bold text-white flex items-center gap-2">
+            System Settings
+            <Sparkles className="w-5 h-5 text-brand-cyan" />
+          </h1>
+          <p className="text-gray-500 text-sm mt-0.5">
+            Manage payment credentials, API integrations, and promotional codes.
+          </p>
+        </div>
       </div>
 
-      {/* Tabs Switcher */}
-      <div className="flex border-b border-[#1d2438] gap-1">
-        <button
-          onClick={() => setActiveTab("khqr")}
-          className={`flex items-center gap-2 px-5 py-3 border-b-2 text-sm font-bold transition-all duration-200 cursor-pointer ${
-            activeTab === "khqr"
-              ? "border-brand-cyan text-brand-cyan bg-brand-cyan/5 rounded-t-xl"
-              : "border-transparent text-gray-400 hover:text-gray-200 hover:bg-[#111625]/30 rounded-t-xl"
-          }`}
-        >
-          <Settings className="w-4 h-4" />
-          KHQR Settings
-        </button>
-        <button
-          onClick={() => setActiveTab("providers")}
-          className={`flex items-center gap-2 px-5 py-3 border-b-2 text-sm font-bold transition-all duration-200 cursor-pointer ${
-            activeTab === "providers"
-              ? "border-brand-cyan text-brand-cyan bg-brand-cyan/5 rounded-t-xl"
-              : "border-transparent text-gray-400 hover:text-gray-200 hover:bg-[#111625]/30 rounded-t-xl"
-          }`}
-        >
-          <Globe className="w-4 h-4" />
-          Provider Settings
-        </button>
-        <button
-          onClick={() => setActiveTab("promos")}
-          className={`flex items-center gap-2 px-5 py-3 border-b-2 text-sm font-bold transition-all duration-200 cursor-pointer ${
-            activeTab === "promos"
-              ? "border-brand-cyan text-brand-cyan bg-brand-cyan/5 rounded-t-xl"
-              : "border-transparent text-gray-400 hover:text-gray-200 hover:bg-[#111625]/30 rounded-t-xl"
-          }`}
-        >
-          <Ticket className="w-4 h-4" />
-          Promo Codes
-        </button>
+      {/* ── Tab Bar ─────────────────────────────────────────────────────────── */}
+      <div className="flex items-center gap-1 p-1 bg-[#0c1119] border border-[#1e2840] rounded-xl w-fit">
+        {tabs.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            onClick={() => setActiveTab(id)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 cursor-pointer ${
+              activeTab === id
+                ? "bg-brand-cyan text-[#080b11] shadow-sm"
+                : "text-gray-400 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <Icon className="w-4 h-4" />
+            {label}
+          </button>
+        ))}
       </div>
 
-      {/* Tab Contents */}
+      {/* ── KHQR Tab ────────────────────────────────────────────────────────── */}
       {activeTab === "khqr" && (
-        <div className="space-y-6 w-full">
-          {/* Warning/Alert box */}
-          <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl flex gap-3 text-sm text-yellow-400">
-            <AlertTriangle className="w-5 h-5 shrink-0" />
-            <div>
-              <h4 className="font-bold text-white mb-0.5">Critical Operation Note</h4>
-              <p className="text-gray-300 leading-relaxed text-xs">
-                Modifying credentials updates parameters embedded in generated payment QR strings instantly. Ensure Account ID is exactly matched to your merchant profile. Any typos will route customer checkout payments incorrectly.
-              </p>
-            </div>
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+          {/* Form Column */}
+          <div className="xl:col-span-2 space-y-4">
+            {message && <AlertBanner type="success" message={message} />}
+            {error && <AlertBanner type="error" message={error} />}
+
+            <form onSubmit={handleSave}>
+              <SectionCard title="Bakong Merchant Config" subtitle="Payment QR generation parameters" icon={ShieldCheck}>
+                <div className="space-y-5">
+                  <Field
+                    label="Bakong Account ID"
+                    hint={<>Format: <strong className="text-gray-400">username@bank</strong> (e.g. thoeurn@aba or 099999999@bkrt)</>}
+                  >
+                    <Input
+                      icon={User}
+                      type="text"
+                      required
+                      value={settings.accountId}
+                      onChange={(e) => setSettings({ ...settings, accountId: e.target.value })}
+                      placeholder="username@aba"
+                    />
+                  </Field>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <Field
+                      label="Merchant Name"
+                      hint={
+                        <span className="flex items-center justify-between">
+                          <span>Shown in banking apps on QR scan</span>
+                          <span className={settings.merchantName.length > 22 ? "text-amber-400" : "text-gray-600"}>
+                            {settings.merchantName.length}/25
+                          </span>
+                        </span>
+                      }
+                    >
+                      <Input
+                        icon={Building}
+                        type="text"
+                        required
+                        maxLength={25}
+                        value={settings.merchantName}
+                        onChange={(e) => setSettings({ ...settings, merchantName: e.target.value })}
+                        placeholder="e.g. Gamex Cambodia"
+                      />
+                    </Field>
+
+                    <Field label="Merchant City" hint="City of merchant bank registration">
+                      <Input
+                        icon={MapPin}
+                        type="text"
+                        required
+                        value={settings.merchantCity}
+                        onChange={(e) => setSettings({ ...settings, merchantCity: e.target.value })}
+                        placeholder="e.g. Phnom Penh"
+                      />
+                    </Field>
+                  </div>
+
+                  <div className="pt-2 flex justify-end">
+                    <button
+                      type="submit"
+                      disabled={saving}
+                      className="flex items-center gap-2 px-5 py-2.5 bg-brand-cyan text-[#080b11] font-bold rounded-lg text-sm
+                        hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
+                    >
+                      {saving ? (
+                        <span className="w-4 h-4 border-2 border-[#080b11] border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Save className="w-4 h-4" />
+                      )}
+                      {saving ? "Saving..." : "Save Credentials"}
+                    </button>
+                  </div>
+                </div>
+              </SectionCard>
+            </form>
           </div>
 
-          {/* Success/Error Banner */}
-          {message && (
-            <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-2xl flex gap-3 text-sm text-green-400">
-              <CheckCircle className="w-5 h-5 shrink-0" />
-              <p className="leading-relaxed text-xs font-semibold">{message}</p>
-            </div>
-          )}
-          {error && (
-            <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex gap-3 text-sm text-red-400">
-              <AlertTriangle className="w-5 h-5 shrink-0" />
-              <p className="leading-relaxed text-xs font-semibold">{error}</p>
-            </div>
-          )}
-
-          {/* Settings Form Card */}
-          <form onSubmit={handleSave} className="p-8 rounded-2xl bg-[#111625] border border-[#1d2438] space-y-6">
-            <div className="flex items-center gap-2 pb-4 border-b border-[#1d2438]">
-              <Settings className="w-5 h-5 text-brand-cyan" />
-              <h3 className="text-base font-bold text-white">Merchant Config parameters</h3>
-            </div>
-
-            {/* Bakong Account ID */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                Bakong Account ID
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-500">
-                  <User className="w-4 h-4" />
-                </div>
-                <input
-                  type="text"
-                  required
-                  value={settings.accountId}
-                  onChange={(e) => setSettings({ ...settings, accountId: e.target.value })}
-                  placeholder="username@aba"
-                  className="block w-full pl-10 pr-4 py-3 bg-[#080b11]/80 border border-[#1d2438] rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-cyan/30 focus:border-brand-cyan transition-all text-sm font-semibold"
-                />
-              </div>
-              <p className="text-gray-500 text-[10px] mt-1.5 leading-normal">
-                For individual accounts: e.g., <strong>thoeurn_ratha@bkrt</strong> or <strong>099999999@aba</strong>. Do not use account numbers; use the unique user account alias.
+          {/* Info Sidebar */}
+          <div className="space-y-4">
+            <SectionCard title="Important Note" icon={AlertTriangle} accent="amber">
+              <p className="text-xs text-gray-400 leading-relaxed">
+                Modifying these credentials immediately affects all generated payment QR codes.
+                Ensure the Account ID exactly matches your merchant profile — any mismatch will
+                route payments incorrectly.
               </p>
-            </div>
+            </SectionCard>
 
-            {/* Merchant Name */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                Merchant Name
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-500">
-                  <Building className="w-4 h-4" />
+            <div className="rounded-xl bg-[#0e1420] border border-[#1e2840] p-4 space-y-3">
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Quick Reference</p>
+              <div className="space-y-2 text-xs text-gray-500">
+                <div className="flex items-start gap-2">
+                  <Info className="w-3.5 h-3.5 text-brand-cyan mt-0.5 shrink-0" />
+                  <span>ABA: <code className="text-gray-300">name@aba</code></span>
                 </div>
-                <input
-                  type="text"
-                  required
-                  maxLength={25}
-                  value={settings.merchantName}
-                  onChange={(e) => setSettings({ ...settings, merchantName: e.target.value })}
-                  placeholder="e.g. Gamex Cambodia"
-                  className="block w-full pl-10 pr-4 py-3 bg-[#080b11]/80 border border-[#1d2438] rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-cyan/30 focus:border-brand-cyan transition-all text-sm font-semibold"
-                />
-              </div>
-              <p className="text-gray-500 text-[10px] mt-1.5 flex items-center justify-between">
-                <span>Will display as the store label in banking apps when scanning the QR code.</span>
-                <span className={settings.merchantName.length > 22 ? "text-yellow-400" : "text-gray-600"}>
-                  {settings.merchantName.length}/25
-                </span>
-              </p>
-            </div>
-
-            {/* Merchant City */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                Merchant City
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-500">
-                  <MapPin className="w-4 h-4" />
+                <div className="flex items-start gap-2">
+                  <Info className="w-3.5 h-3.5 text-brand-cyan mt-0.5 shrink-0" />
+                  <span>BKRT: <code className="text-gray-300">name@bkrt</code></span>
                 </div>
-                <input
-                  type="text"
-                  required
-                  value={settings.merchantCity}
-                  onChange={(e) => setSettings({ ...settings, merchantCity: e.target.value })}
-                  placeholder="e.g. Phnom Penh"
-                  className="block w-full pl-10 pr-4 py-3 bg-[#080b11]/80 border border-[#1d2438] rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-cyan/30 focus:border-brand-cyan transition-all text-sm font-semibold"
-                />
+                <div className="flex items-start gap-2">
+                  <Info className="w-3.5 h-3.5 text-brand-cyan mt-0.5 shrink-0" />
+                  <span>Wing: <code className="text-gray-300">phone@wing</code></span>
+                </div>
               </div>
-              <p className="text-gray-500 text-[10px] mt-1.5">
-                City of register for individual or business bank setup.
-              </p>
             </div>
-
-            {/* Save Button */}
-            <button
-              type="submit"
-              disabled={saving}
-              className="w-full sm:w-auto px-6 py-3 bg-brand-cyan text-[#080b11] font-bold rounded-xl shadow-lg shadow-brand-cyan/15 hover:shadow-brand-cyan/30 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer text-sm"
-            >
-              {saving ? (
-                <span className="w-4 h-4 border-2 border-[#080b11] border-t-transparent rounded-full animate-spin"></span>
-              ) : (
-                <Save className="w-4 h-4" />
-              )}
-              {saving ? "Saving changes..." : "Save Credentials"}
-            </button>
-          </form>
+          </div>
         </div>
       )}
 
+      {/* ── Providers Tab ────────────────────────────────────────────────────── */}
       {activeTab === "providers" && (
-        <div className="space-y-6 w-full">
-          {/* Warning/Alert box */}
-          <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl flex gap-3 text-sm text-yellow-400">
-            <AlertTriangle className="w-5 h-5 shrink-0" />
-            <div>
-              <h4 className="font-bold text-white mb-0.5">Sensitive API Credentials Note</h4>
-              <p className="text-gray-300 leading-relaxed text-xs">
-                Make sure the API endpoints and keys matches your merchant access dashboard. Leaving credentials blank will automatically keep the clients in fail-safe Sandboxed Simulation (Mock) mode.
-              </p>
-            </div>
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+          <div className="xl:col-span-2 space-y-4">
+            {message && <AlertBanner type="success" message={message} />}
+            {error && <AlertBanner type="error" message={error} />}
+
+            <form onSubmit={handleSave}>
+              {/* Hidden anti-autofill */}
+              <div style={{ position: "absolute", top: "-9999px", left: "-9999px", width: "1px", height: "1px", overflow: "hidden" }} aria-hidden="true">
+                <input type="text" name="dummy_username_autofill" tabIndex={-1} autoComplete="off" />
+                <input type="password" name="dummy_password_autofill" tabIndex={-1} autoComplete="new-password" />
+              </div>
+
+              <SectionCard title="Third-Party API Credentials" subtitle="Configure top-up provider integrations" icon={Zap}>
+                <div className="space-y-8">
+                  {/* Smile One */}
+                  <ProviderSection title="Smile One">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      <Field label="API Email">
+                        <Input
+                          type="email"
+                          value={settings.smileOneEmail || ""}
+                          onChange={(e) => setSettings({ ...settings, smileOneEmail: e.target.value })}
+                          placeholder="api@smileone.com"
+                          autoComplete="off"
+                        />
+                      </Field>
+                      <Field label="API Key">
+                        <Input
+                          type={showSmileOneKey ? "text" : "password"}
+                          value={settings.smileOneApiKey || ""}
+                          onChange={(e) => setSettings({ ...settings, smileOneApiKey: e.target.value })}
+                          placeholder="••••••••••••••••"
+                          autoComplete="new-password"
+                          suffix={
+                            <button type="button" onClick={() => setShowSmileOneKey(!showSmileOneKey)} className="text-gray-500 hover:text-white transition-colors cursor-pointer">
+                              {showSmileOneKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                          }
+                        />
+                      </Field>
+                    </div>
+                    <Field label="API URL Endpoint">
+                      <Input
+                        type="text"
+                        value={settings.smileOneApiUrl || ""}
+                        onChange={(e) => setSettings({ ...settings, smileOneApiUrl: e.target.value })}
+                        placeholder="https://api.smileone.com/v1/order"
+                        autoComplete="off"
+                      />
+                    </Field>
+                  </ProviderSection>
+
+                  {/* UniPin */}
+                  <ProviderSection title="UniPin">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      <Field label="API Secret Key">
+                        <Input
+                          type={showUniPinKey ? "text" : "password"}
+                          value={settings.uniPinSecret || ""}
+                          onChange={(e) => setSettings({ ...settings, uniPinSecret: e.target.value })}
+                          placeholder="••••••••••••••••"
+                          autoComplete="new-password"
+                          suffix={
+                            <button type="button" onClick={() => setShowUniPinKey(!showUniPinKey)} className="text-gray-500 hover:text-white transition-colors cursor-pointer">
+                              {showUniPinKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                          }
+                        />
+                      </Field>
+                      <Field label="API URL Endpoint">
+                        <Input
+                          type="text"
+                          value={settings.uniPinApiUrl || ""}
+                          onChange={(e) => setSettings({ ...settings, uniPinApiUrl: e.target.value })}
+                          placeholder="https://api.unipin.com/v1/topup"
+                          autoComplete="off"
+                        />
+                      </Field>
+                    </div>
+                  </ProviderSection>
+
+                  {/* TopUpLive */}
+                  <ProviderSection title="TopUpLive">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      <Field label="Merchant ID">
+                        <Input
+                          type="text"
+                          value={settings.topUpLiveMerchantId || ""}
+                          onChange={(e) => setSettings({ ...settings, topUpLiveMerchantId: e.target.value })}
+                          placeholder="e.g. 12345"
+                          autoComplete="off"
+                        />
+                      </Field>
+                      <Field label="API Key">
+                        <Input
+                          type={showTopUpLiveKey ? "text" : "password"}
+                          value={settings.topUpLiveApiKey || ""}
+                          onChange={(e) => setSettings({ ...settings, topUpLiveApiKey: e.target.value })}
+                          placeholder="••••••••••••••••"
+                          autoComplete="new-password"
+                          suffix={
+                            <button type="button" onClick={() => setShowTopUpLiveKey(!showTopUpLiveKey)} className="text-gray-500 hover:text-white transition-colors cursor-pointer">
+                              {showTopUpLiveKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                          }
+                        />
+                      </Field>
+                    </div>
+                    <Field label="API URL Endpoint">
+                      <Input
+                        type="text"
+                        value={settings.topUpLiveApiUrl || ""}
+                        onChange={(e) => setSettings({ ...settings, topUpLiveApiUrl: e.target.value })}
+                        placeholder="https://api.topuplive.com/v1/order"
+                        autoComplete="off"
+                      />
+                    </Field>
+                  </ProviderSection>
+
+                  <div className="pt-2 flex justify-end border-t border-[#1e2840]">
+                    <button
+                      type="submit"
+                      disabled={saving}
+                      className="flex items-center gap-2 px-5 py-2.5 bg-brand-cyan text-[#080b11] font-bold rounded-lg text-sm
+                        hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none cursor-pointer mt-4"
+                    >
+                      {saving ? (
+                        <span className="w-4 h-4 border-2 border-[#080b11] border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Save className="w-4 h-4" />
+                      )}
+                      {saving ? "Saving..." : "Save API Settings"}
+                    </button>
+                  </div>
+                </div>
+              </SectionCard>
+            </form>
           </div>
 
-          {/* Success/Error Banner */}
-          {message && (
-            <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-2xl flex gap-3 text-sm text-green-400">
-              <CheckCircle className="w-5 h-5 shrink-0" />
-              <p className="leading-relaxed text-xs font-semibold">{message}</p>
-            </div>
-          )}
-          {error && (
-            <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex gap-3 text-sm text-red-400">
-              <AlertTriangle className="w-5 h-5 shrink-0" />
-              <p className="leading-relaxed text-xs font-semibold">{error}</p>
-            </div>
-          )}
+          {/* Info Sidebar */}
+          <div className="space-y-4">
+            <SectionCard title="Sandbox Mode" icon={AlertTriangle} accent="amber">
+              <p className="text-xs text-gray-400 leading-relaxed">
+                Leaving any provider credentials blank will automatically switch that provider to
+                <strong className="text-amber-400"> Simulation (Mock) mode</strong> — no real top-ups
+                will be processed.
+              </p>
+            </SectionCard>
 
-          {/* Providers settings Form Card */}
-          <form onSubmit={handleSave} className="p-8 rounded-2xl bg-[#111625] border border-[#1d2438] space-y-8">
-            {/* Dummy hidden inputs to intercept browser autofill */}
-            <div style={{ position: 'absolute', top: '-9999px', left: '-9999px', width: '1px', height: '1px', overflow: 'hidden' }} aria-hidden="true">
-              <input type="text" name="dummy_username_autofill" tabIndex={-1} autoComplete="off" />
-              <input type="password" name="dummy_password_autofill" tabIndex={-1} autoComplete="new-password" />
-            </div>
-
-            {/* Smile One Integration */}
-            <div className="space-y-6">
-              <div className="flex items-center gap-2 pb-4 border-b border-[#1d2438]">
-                <Globe className="w-5 h-5 text-brand-cyan" />
-                <h3 className="text-base font-bold text-white">Smile One API Integration</h3>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                    Smile One API Email
-                  </label>
-                  <input
-                    type="email"
-                    value={settings.smileOneEmail || ""}
-                    onChange={(e) => setSettings({ ...settings, smileOneEmail: e.target.value })}
-                    placeholder="e.g. api@smileone.com"
-                    autoComplete="off"
-                    className="block w-full px-4 py-3 bg-[#080b11]/80 border border-[#1d2438] rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-cyan/30 focus:border-brand-cyan transition-all text-sm font-semibold"
-                  />
+            <div className="rounded-xl bg-[#0e1420] border border-[#1e2840] p-4 space-y-3">
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Provider Status</p>
+              {[
+                { name: "Smile One", active: !!(settings.smileOneApiKey) },
+                { name: "UniPin", active: !!(settings.uniPinSecret) },
+                { name: "TopUpLive", active: !!(settings.topUpLiveApiKey) },
+              ].map(({ name, active }) => (
+                <div key={name} className="flex items-center justify-between text-xs">
+                  <span className="text-gray-400">{name}</span>
+                  <span className={`px-2 py-0.5 rounded-full font-semibold border ${
+                    active
+                      ? "bg-green-500/10 border-green-500/20 text-green-400"
+                      : "bg-gray-500/10 border-gray-500/20 text-gray-500"
+                  }`}>
+                    {active ? "Configured" : "Mock Mode"}
+                  </span>
                 </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                    Smile One API Key
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showSmileOneKey ? "text" : "password"}
-                      value={settings.smileOneApiKey || ""}
-                      onChange={(e) => setSettings({ ...settings, smileOneApiKey: e.target.value })}
-                      placeholder="••••••••••••••••"
-                      autoComplete="new-password"
-                      className="block w-full pl-4 pr-10 py-3 bg-[#080b11]/80 border border-[#1d2438] rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-cyan/30 focus:border-brand-cyan transition-all text-sm font-semibold"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowSmileOneKey(!showSmileOneKey)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white transition-colors cursor-pointer"
-                    >
-                      {showSmileOneKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                  Smile One API URL Endpoint
-                </label>
-                <input
-                  type="text"
-                  value={settings.smileOneApiUrl || ""}
-                  onChange={(e) => setSettings({ ...settings, smileOneApiUrl: e.target.value })}
-                  placeholder="https://api.smileone.com/v1/order"
-                  autoComplete="off"
-                  className="block w-full px-4 py-3 bg-[#080b11]/80 border border-[#1d2438] rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-cyan/30 focus:border-brand-cyan transition-all text-sm font-semibold"
-                />
-              </div>
+              ))}
             </div>
-
-            {/* UniPin Integration */}
-            <div className="pt-6 border-t border-[#1d2438] space-y-6">
-              <div className="flex items-center gap-2 pb-4 border-b border-[#1d2438]">
-                <Globe className="w-5 h-5 text-brand-cyan" />
-                <h3 className="text-base font-bold text-white">UniPin API Integration</h3>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                    UniPin API Secret Key
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showUniPinKey ? "text" : "password"}
-                      value={settings.uniPinSecret || ""}
-                      onChange={(e) => setSettings({ ...settings, uniPinSecret: e.target.value })}
-                      placeholder="••••••••••••••••"
-                      autoComplete="new-password"
-                      className="block w-full pl-4 pr-10 py-3 bg-[#080b11]/80 border border-[#1d2438] rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-cyan/30 focus:border-brand-cyan transition-all text-sm font-semibold"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowUniPinKey(!showUniPinKey)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white transition-colors cursor-pointer"
-                    >
-                      {showUniPinKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                    UniPin API URL Endpoint
-                  </label>
-                  <input
-                    type="text"
-                    value={settings.uniPinApiUrl || ""}
-                    onChange={(e) => setSettings({ ...settings, uniPinApiUrl: e.target.value })}
-                    placeholder="https://api.unipin.com/v1/topup"
-                    autoComplete="off"
-                    className="block w-full px-4 py-3 bg-[#080b11]/80 border border-[#1d2438] rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-cyan/30 focus:border-brand-cyan transition-all text-sm font-semibold"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* TopUpLive Integration */}
-            <div className="pt-6 border-t border-[#1d2438] space-y-6">
-              <div className="flex items-center gap-2 pb-4 border-b border-[#1d2438]">
-                <Globe className="w-5 h-5 text-brand-cyan" />
-                <h3 className="text-base font-bold text-white">TopUpLive API Integration</h3>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                    TopUpLive Merchant ID
-                  </label>
-                  <input
-                    type="text"
-                    value={settings.topUpLiveMerchantId || ""}
-                    onChange={(e) => setSettings({ ...settings, topUpLiveMerchantId: e.target.value })}
-                    placeholder="e.g. 12345"
-                    autoComplete="off"
-                    className="block w-full px-4 py-3 bg-[#080b11]/80 border border-[#1d2438] rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-cyan/30 focus:border-brand-cyan transition-all text-sm font-semibold"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                    TopUpLive API Key
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showTopUpLiveKey ? "text" : "password"}
-                      value={settings.topUpLiveApiKey || ""}
-                      onChange={(e) => setSettings({ ...settings, topUpLiveApiKey: e.target.value })}
-                      placeholder="••••••••••••••••"
-                      autoComplete="new-password"
-                      className="block w-full pl-4 pr-10 py-3 bg-[#080b11]/80 border border-[#1d2438] rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-cyan/30 focus:border-brand-cyan transition-all text-sm font-semibold"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowTopUpLiveKey(!showTopUpLiveKey)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white transition-colors cursor-pointer"
-                    >
-                      {showTopUpLiveKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                  TopUpLive API URL Endpoint
-                </label>
-                <input
-                  type="text"
-                  value={settings.topUpLiveApiUrl || ""}
-                  onChange={(e) => setSettings({ ...settings, topUpLiveApiUrl: e.target.value })}
-                  placeholder="https://api.topuplive.com/v1/order"
-                  autoComplete="off"
-                  className="block w-full px-4 py-3 bg-[#080b11]/80 border border-[#1d2438] rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-cyan/30 focus:border-brand-cyan transition-all text-sm font-semibold"
-                />
-              </div>
-            </div>
-
-            {/* Save Button */}
-            <button
-              type="submit"
-              disabled={saving}
-              className="w-full sm:w-auto px-6 py-3 bg-brand-cyan text-[#080b11] font-bold rounded-xl shadow-lg shadow-brand-cyan/15 hover:shadow-brand-cyan/30 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer text-sm"
-            >
-              {saving ? (
-                <span className="w-4 h-4 border-2 border-[#080b11] border-t-transparent rounded-full animate-spin"></span>
-              ) : (
-                <Save className="w-4 h-4" />
-              )}
-              {saving ? "Saving changes..." : "Save Provider API"}
-            </button>
-          </form>
+          </div>
         </div>
       )}
 
+      {/* ── Promo Codes Tab ──────────────────────────────────────────────────── */}
       {activeTab === "promos" && (
-        <div className="space-y-6">
-          {/* Messages */}
-          {promoMessage && (
-            <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-2xl flex gap-3 text-sm text-green-400">
-              <CheckCircle className="w-5 h-5 shrink-0" />
-              <p className="leading-relaxed text-xs font-semibold">{promoMessage}</p>
-            </div>
-          )}
+        <div className="space-y-4">
+          {promoMessage && <AlertBanner type="success" message={promoMessage} />}
+          {promoError && <AlertBanner type="error" message={promoError} />}
 
-          {promoError && (
-            <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex gap-3 text-sm text-red-400">
-              <AlertTriangle className="w-5 h-5 shrink-0" />
-              <p className="leading-relaxed text-xs font-semibold">{promoError}</p>
-            </div>
-          )}
-
-          {/* Promo list container */}
-          <div className="p-6 rounded-2xl bg-[#111625] border border-[#1d2438] shadow-lg shadow-black/10">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-              <div>
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  Active Coupons ({promos.length})
-                </h3>
-                <p className="text-gray-400 text-xs mt-0.5">List of discount codes currently configured on the platform.</p>
+          <div className="rounded-xl bg-[#0e1420] border border-[#1e2840] overflow-hidden">
+            {/* Table Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e2840]">
+              <div className="flex items-center gap-3">
+                <div className="p-1.5 rounded-lg bg-brand-cyan/10 border border-brand-cyan/20 text-brand-cyan">
+                  <Ticket className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white">
+                    Promo Codes
+                    <span className="ml-2 text-xs font-semibold text-gray-500 bg-[#1e2840] px-2 py-0.5 rounded-full">
+                      {promos.length}
+                    </span>
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-0.5">Manage discount codes for checkout</p>
+                </div>
               </div>
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="px-4 py-2.5 bg-brand-cyan text-[#080b11] font-bold rounded-xl shadow-lg shadow-brand-cyan/15 hover:shadow-brand-cyan/30 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer text-xs"
+                className="flex items-center gap-2 px-4 py-2 bg-brand-cyan text-[#080b11] font-bold rounded-lg text-xs
+                  hover:brightness-110 active:scale-[0.98] transition-all cursor-pointer"
               >
-                <Plus className="w-4 h-4" />
-                Create Promo Code
+                <Plus className="w-3.5 h-3.5" />
+                New Code
               </button>
             </div>
 
+            {/* Table Body */}
             {promosLoading ? (
-              <div className="flex flex-col items-center justify-center py-12 gap-3 text-gray-400 font-semibold text-sm">
-                <div className="w-6 h-6 border-2 border-brand-cyan border-t-transparent rounded-full animate-spin"></div>
-                <span>Loading promo codes...</span>
+              <div className="flex items-center justify-center py-16 gap-3 text-gray-500 text-sm">
+                <div className="w-5 h-5 border-2 border-brand-cyan border-t-transparent rounded-full animate-spin" />
+                Loading...
               </div>
             ) : promos.length === 0 ? (
-              <div className="py-12 text-center text-gray-500 text-sm">
-                No promo codes configured yet. Click "Create Promo Code" to add one.
+              <div className="py-16 text-center space-y-2">
+                <Ticket className="w-8 h-8 text-gray-700 mx-auto" />
+                <p className="text-gray-500 text-sm">No promo codes yet</p>
+                <p className="text-gray-600 text-xs">Click "New Code" to create your first discount code</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm border-collapse">
+                <table className="w-full text-left text-sm">
                   <thead>
-                    <tr className="border-b border-[#1d2438] text-gray-400 text-xs font-semibold uppercase tracking-wider">
-                      <th className="py-3 px-4">Code</th>
-                      <th className="py-3 px-4">Discount</th>
-                      <th className="py-3 px-4">Uses (Used/Max)</th>
-                      <th className="py-3 px-4">Status</th>
-                      <th className="py-3 px-4">Active</th>
-                      <th className="py-3 px-4">Created At</th>
-                      <th className="py-3 px-4 text-right">Actions</th>
+                    <tr className="border-b border-[#1e2840]">
+                      {["Code", "Discount", "Usage", "Status", "Active", "Created", ""].map((h) => (
+                        <th key={h} className="px-5 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                          {h}
+                        </th>
+                      ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#1d2438]/50">
+                  <tbody className="divide-y divide-[#1e2840]/60">
                     {promos.map((promo) => {
                       const isLimitReached = promo.useCount >= promo.maxUses;
-                      const statusLabel = !promo.isActive 
-                        ? "Inactive" 
-                        : isLimitReached 
-                          ? "Limit Reached" 
-                          : "Active";
-                      
+                      const statusLabel = !promo.isActive ? "Inactive" : isLimitReached ? "Limit Reached" : "Active";
+                      const usagePct = Math.min(100, (promo.useCount / promo.maxUses) * 100);
+
                       return (
-                        <tr key={promo.id} className="hover:bg-white/2 transition-colors">
-                          <td className="py-4 px-4 font-bold text-white flex items-center gap-2">
-                            <Ticket className="w-4 h-4 text-brand-cyan" />
-                            <span className="tracking-wide">{promo.code}</span>
+                        <tr key={promo.id} className="hover:bg-white/[0.02] transition-colors">
+                          {/* Code */}
+                          <td className="px-5 py-4">
+                            <div className="flex items-center gap-2">
+                              <code className="text-sm font-bold text-white tracking-wider bg-[#1e2840] px-2.5 py-1 rounded-lg">
+                                {promo.code}
+                              </code>
+                            </div>
                           </td>
-                          <td className="py-4 px-4 text-brand-cyan font-bold">
-                            {(promo.discount * 100).toFixed(0)}%
+
+                          {/* Discount */}
+                          <td className="px-5 py-4">
+                            <span className="text-brand-cyan font-bold text-sm">
+                              {(promo.discount * 100).toFixed(0)}%
+                            </span>
                           </td>
-                          <td className="py-4 px-4">
-                            <div className="flex flex-col gap-1">
-                              <span className="text-gray-300 font-semibold">
-                                {promo.useCount} <span className="text-gray-500">/ {promo.maxUses}</span>
-                              </span>
-                              <div className="w-24 h-1.5 bg-[#080b11] rounded-full overflow-hidden">
-                                <div 
-                                  className={`h-full rounded-full transition-all duration-500 ${
-                                    isLimitReached ? "bg-red-500" : "bg-brand-cyan"
-                                  }`}
-                                  style={{ width: `${Math.min(100, (promo.useCount / promo.maxUses) * 100)}%` }}
-                                ></div>
+
+                          {/* Usage */}
+                          <td className="px-5 py-4">
+                            <div className="space-y-1.5">
+                              <div className="flex items-center gap-1.5 text-xs">
+                                <span className="font-semibold text-gray-300">{promo.useCount}</span>
+                                <span className="text-gray-600">/ {promo.maxUses}</span>
+                              </div>
+                              <div className="w-20 h-1 bg-[#1e2840] rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full transition-all ${isLimitReached ? "bg-red-500" : "bg-brand-cyan"}`}
+                                  style={{ width: `${usagePct}%` }}
+                                />
                               </div>
                             </div>
                           </td>
-                          <td className="py-4 px-4">
-                            <span className={`px-2 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-wider ${
+
+                          {/* Status */}
+                          <td className="px-5 py-4">
+                            <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
                               statusLabel === "Active"
-                                ? "bg-green-500/10 border border-green-500/20 text-green-400"
+                                ? "bg-green-500/10 border-green-500/20 text-green-400"
                                 : statusLabel === "Limit Reached"
-                                  ? "bg-yellow-500/10 border border-yellow-500/20 text-yellow-400"
-                                  : "bg-red-500/10 border border-red-500/20 text-red-400"
+                                ? "bg-amber-500/10 border-amber-500/20 text-amber-400"
+                                : "bg-gray-500/10 border-gray-500/20 text-gray-400"
                             }`}>
                               {statusLabel}
                             </span>
                           </td>
-                          {/* Active Toggle */}
-                          <td className="py-4 px-4">
+
+                          {/* Toggle */}
+                          <td className="px-5 py-4">
                             <button
                               type="button"
                               onClick={() => handleTogglePromo(promo.id, promo.isActive)}
-                              className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 transition-colors duration-200 ease-in-out focus:outline-none ${
-                                promo.isActive
-                                  ? "bg-brand-cyan border-brand-cyan/80"
-                                  : "bg-gray-700 border-gray-600"
+                              title={promo.isActive ? "Disable" : "Enable"}
+                              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border transition-colors duration-200 ${
+                                promo.isActive ? "bg-brand-cyan border-brand-cyan/80" : "bg-[#1e2840] border-[#2a3350]"
                               }`}
-                              title={promo.isActive ? "Click to disable" : "Click to enable"}
                             >
-                              <span
-                                className={`inline-block h-3.5 w-3.5 mt-0.5 transform rounded-full bg-white shadow transition-transform duration-200 ease-in-out ${
-                                  promo.isActive ? "translate-x-4" : "translate-x-0.5"
-                                }`}
-                              />
+                              <span className={`inline-block h-3.5 w-3.5 mt-[1px] ml-[1px] transform rounded-full bg-white shadow transition-transform duration-200 ${
+                                promo.isActive ? "translate-x-4" : "translate-x-0"
+                              }`} />
                             </button>
                           </td>
-                          <td className="py-4 px-4 text-xs text-gray-400">
+
+                          {/* Date */}
+                          <td className="px-5 py-4 text-xs text-gray-500 whitespace-nowrap">
                             {new Date(promo.createdAt).toLocaleDateString(undefined, {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric'
+                              year: "numeric", month: "short", day: "numeric",
                             })}
                           </td>
-                          <td className="py-4 px-4 text-right">
+
+                          {/* Delete */}
+                          <td className="px-5 py-4 text-right">
                             <button
                               onClick={() => handleDeletePromo(promo.id)}
-                              className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all cursor-pointer"
-                              title="Delete Promo"
+                              title="Delete"
+                              className="p-1.5 text-gray-600 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all cursor-pointer"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </td>
                         </tr>
@@ -843,107 +850,92 @@ export default function AdminSettings() {
         </div>
       )}
 
-      {/* Create Modal */}
+      {/* ── Create Promo Modal ───────────────────────────────────────────────── */}
       <AnimatePresence>
         {showCreateModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowCreateModal(false)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             />
-
-            {/* Modal Card */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="relative z-10 w-full max-w-md p-6 bg-[#111625] border border-[#1d2438] rounded-2xl shadow-2xl space-y-6"
+              initial={{ opacity: 0, scale: 0.96, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 8 }}
+              className="relative z-10 w-full max-w-sm bg-[#0e1420] border border-[#1e2840] rounded-2xl shadow-2xl overflow-hidden"
             >
-              <div className="flex items-center justify-between pb-4 border-b border-[#1d2438]">
-                <div className="flex items-center gap-2">
-                  <Ticket className="w-5 h-5 text-brand-cyan" />
-                  <h3 className="text-lg font-bold text-white">Create Promo Code</h3>
+              {/* Modal Header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e2840]">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-1.5 rounded-lg bg-brand-cyan/10 border border-brand-cyan/20 text-brand-cyan">
+                    <Ticket className="w-4 h-4" />
+                  </div>
+                  <h3 className="text-sm font-bold text-white">Create Promo Code</h3>
                 </div>
                 <button
                   onClick={() => setShowCreateModal(false)}
-                  className="p-1 text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all cursor-pointer"
+                  className="p-1 text-gray-500 hover:text-white hover:bg-white/5 rounded-lg transition-all cursor-pointer"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <form onSubmit={handleCreatePromo} className="space-y-4">
-                {/* Promo Code Input */}
-                <div>
-                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                    Promo Code
-                  </label>
-                  <input
+              {/* Modal Body */}
+              <form onSubmit={handleCreatePromo} className="p-5 space-y-4">
+                {promoError && <AlertBanner type="error" message={promoError} />}
+
+                <Field label="Promo Code">
+                  <Input
                     type="text"
                     required
-                    placeholder="e.g. SUPER10"
+                    placeholder="e.g. SUMMER20"
                     value={newPromoCode}
                     onChange={(e) => setNewPromoCode(e.target.value)}
-                    className="block w-full px-4 py-3 bg-[#080b11]/80 border border-[#1d2438] rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-cyan/30 focus:border-brand-cyan transition-all text-sm font-semibold uppercase tracking-wider"
+                    className="uppercase tracking-widest font-mono"
                   />
-                </div>
+                </Field>
 
                 <div className="grid grid-cols-2 gap-4">
-                  {/* Discount (%) */}
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                      Discount (%)
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        required
-                        min="1"
-                        max="100"
-                        value={newPromoDiscount}
-                        onChange={(e) => setNewPromoDiscount(parseInt(e.target.value) || 0)}
-                        className="block w-full pl-4 pr-10 py-3 bg-[#080b11]/80 border border-[#1d2438] rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-brand-cyan/30 focus:border-brand-cyan transition-all text-sm font-semibold"
-                      />
-                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-500 font-bold text-sm">
-                        %
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Max Uses */}
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                      Max Uses
-                    </label>
-                    <input
+                  <Field label="Discount (%)">
+                    <Input
+                      type="number"
+                      required
+                      min="1"
+                      max="100"
+                      value={newPromoDiscount}
+                      onChange={(e) => setNewPromoDiscount(parseInt(e.target.value) || 0)}
+                      suffix={<span className="text-gray-500 text-sm font-bold pointer-events-none">%</span>}
+                    />
+                  </Field>
+                  <Field label="Max Uses">
+                    <Input
                       type="number"
                       required
                       min="1"
                       value={newPromoMaxUses}
                       onChange={(e) => setNewPromoMaxUses(parseInt(e.target.value) || 0)}
-                      className="block w-full px-4 py-3 bg-[#080b11]/80 border border-[#1d2438] rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-brand-cyan/30 focus:border-brand-cyan transition-all text-sm font-semibold"
                     />
-                  </div>
+                  </Field>
                 </div>
 
-                <div className="pt-4 flex gap-3">
+                <div className="flex gap-3 pt-2">
                   <button
                     type="button"
                     onClick={() => setShowCreateModal(false)}
-                    className="flex-1 py-3 bg-white/5 hover:bg-white/10 text-white font-bold rounded-xl transition-all cursor-pointer text-sm"
+                    className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 text-white font-semibold rounded-lg text-sm transition-all cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-3 bg-brand-cyan text-[#080b11] font-bold rounded-xl shadow-lg shadow-brand-cyan/15 hover:shadow-brand-cyan/30 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer text-sm"
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-brand-cyan text-[#080b11] font-bold rounded-lg text-sm
+                      hover:brightness-110 active:scale-[0.98] transition-all cursor-pointer"
                   >
                     <Plus className="w-4 h-4" />
-                    Create Code
+                    Create
                   </button>
                 </div>
               </form>
