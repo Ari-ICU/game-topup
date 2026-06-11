@@ -145,6 +145,7 @@ export default function GameTopupPage() {
   const [pkgSearch, setPkgSearch] = useState("");
   const [idCheckStatus, setIdCheckStatus] = useState<"IDLE" | "CHECKING" | "FOUND" | "NOT_FOUND">("IDLE");
   const [checkedName, setCheckedName] = useState("");
+  const [checkErrorMsg, setCheckErrorMsg] = useState("");
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(300);
 
@@ -250,16 +251,19 @@ export default function GameTopupPage() {
     if (!playerId.trim()) return;
     setIdCheckStatus("CHECKING");
     setCheckedName("");
+    setCheckErrorMsg("");
     try {
       const res = await apiService.validatePlayerId(slug as string, playerId, zoneId);
       if (res.success && res.nickname) {
         setCheckedName(res.nickname);
         setIdCheckStatus("FOUND");
       } else {
+        setCheckErrorMsg(res.error || "Player ID not found. Please check and try again.");
         setIdCheckStatus("NOT_FOUND");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Player ID check failed:", err);
+      setCheckErrorMsg(err?.message || "Could not connect to verification service. Please try again.");
       setIdCheckStatus("NOT_FOUND");
     }
   };
@@ -406,6 +410,7 @@ export default function GameTopupPage() {
     setStatus("IDLE");
     setIdCheckStatus("IDLE");
     setCheckedName("");
+    setCheckErrorMsg("");
     setTransactionId(null);
     setQrCode(null); // Always clear QR on reset
     setCountdown(300);
@@ -516,6 +521,7 @@ export default function GameTopupPage() {
                             setPlayerId(e.target.value);
                             setIdCheckStatus("IDLE");
                             setCheckedName("");
+                            setCheckErrorMsg("");
                           }}
                           className="flex-1 text-sm font-semibold rounded-xl border border-[#1d2438] bg-[#080b11] p-3 outline-none focus:border-brand-cyan transition min-w-0"
                         />
@@ -544,10 +550,13 @@ export default function GameTopupPage() {
                             animate={{ opacity: 1, height: "auto" }}
                             exit={{ opacity: 0, height: 0 }}
                             transition={{ duration: 0.25 }}
-                            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/20"
+                            className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-green-500/10 border border-green-500/25"
                           >
-                            <Check className="w-3.5 h-3.5 text-green-400 shrink-0 stroke-[3px]" />
-                            <span className="text-xs font-bold text-green-400">Found: <span className="text-white">{checkedName}</span></span>
+                            <Check className="w-4 h-4 text-green-400 shrink-0 stroke-[3px]" />
+                            <span className="text-xs font-bold text-green-400">
+                              {language === "en" ? "Found" : "ឃើញ"}:{" "}
+                              <span className="text-white font-extrabold">{checkedName}</span>
+                            </span>
                           </motion.div>
                         )}
                         {idCheckStatus === "NOT_FOUND" && (
@@ -557,9 +566,14 @@ export default function GameTopupPage() {
                             animate={{ opacity: 1, height: "auto" }}
                             exit={{ opacity: 0, height: 0 }}
                             transition={{ duration: 0.25 }}
-                            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20"
+                            className="flex items-start gap-2.5 px-3 py-2.5 rounded-xl bg-red-500/10 border border-red-500/25"
                           >
-                            <span className="text-xs font-bold text-red-400">Player ID not found. Please check and try again.</span>
+                            <svg className="w-4 h-4 text-red-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                            </svg>
+                            <span className="text-xs font-bold text-red-400 leading-relaxed">
+                              {checkErrorMsg || (language === "en" ? "Player ID not found. Please check and try again." : "រកមិនឃើញ Player ID។ សូមពិនិត្យឡើងវិញ។")}
+                            </span>
                           </motion.div>
                         )}
                       </AnimatePresence>
