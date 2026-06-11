@@ -79,9 +79,7 @@ export class SmileOneClient {
     const validateUrl = apiBase.replace("/v1/order", "/v1/user/query");
 
     if (!apiEmail || !apiKey) {
-      const names = ["ApexPredator", "LethalStrike", "PhantomRider", "CyberPunk", "HyperBeast", "OmegaPulse"];
-      const index = Math.abs(playerId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0)) % names.length;
-      return { success: true, nickname: names[index] };
+      return { success: false, error: "Smile One credentials are not configured. Please contact support." };
     }
 
     const params = {
@@ -111,10 +109,10 @@ export class SmileOneClient {
       if (result.status === 200 && result.nickname) {
         return { success: true, nickname: result.nickname };
       } else {
-        return { success: false, error: result.error || "Player ID not found" };
+        return { success: false, error: result.error || "Player ID not found. Please check your ID and Zone ID." };
       }
     } catch (error: any) {
-      return { success: false, error: error.message || "Verification connection failed" };
+      return { success: false, error: error.message || "Could not connect to verification service. Please try again." };
     }
   }
 }
@@ -181,16 +179,44 @@ export class UniPinClient {
     });
 
     const apiSecret = settings?.uniPinSecret || process.env.UNIPIN_SECRET || "";
+    const apiBase = settings?.uniPinApiUrl || process.env.UNIPIN_API_URL || "https://api.unipin.com/v1/topup";
+    const validateUrl = apiBase.replace("/v1/topup", "/v1/user/query");
+
     if (!apiSecret) {
-      const names = ["UniGamer", "PinStriker", "LuckyDraw", "SoloCarry", "NexusPro"];
-      const index = Math.abs(playerId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0)) % names.length;
-      return { success: true, nickname: names[index] };
+      return { success: false, error: "UniPin credentials are not configured. Please contact support." };
     }
 
-    // Standard UniPin user validation simulation/integration
-    const names = ["UniGamer", "PinStriker", "LuckyDraw", "SoloCarry", "NexusPro"];
-    const index = Math.abs(playerId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0)) % names.length;
-    return { success: true, nickname: names[index] };
+    const params = {
+      userId: playerId,
+      zoneId: zoneId || "",
+      timestamp: Math.floor(Date.now() / 1000).toString(),
+    };
+
+    const paramString = `${params.userId}|${params.zoneId}|${params.timestamp}`;
+    const signature = crypto
+      .createHmac("sha256", apiSecret)
+      .update(paramString)
+      .digest("hex");
+
+    try {
+      const response = await fetch(validateUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Signature": signature,
+        },
+        body: JSON.stringify({ ...params, sign: signature }),
+      });
+
+      const result = await response.json();
+      if (result.code === 200 && result.nickname) {
+        return { success: true, nickname: result.nickname };
+      } else {
+        return { success: false, error: result.message || "Player ID not found. Please check your ID and Zone ID." };
+      }
+    } catch (error: any) {
+      return { success: false, error: error.message || "Could not connect to verification service. Please try again." };
+    }
   }
 }
 
@@ -259,15 +285,44 @@ export class TopUpLiveClient {
 
     const merchantId = settings?.topUpLiveMerchantId || process.env.TOPUPLIVE_MERCHANT_ID || "";
     const apiKey = settings?.topUpLiveApiKey || process.env.TOPUPLIVE_API_KEY || "";
+    const apiBase = settings?.topUpLiveApiUrl || process.env.TOPUPLIVE_API_URL || "https://api.topuplive.com/v1/order";
+    const validateUrl = apiBase.replace("/v1/order", "/v1/user/query");
+
     if (!merchantId || !apiKey) {
-      const names = ["LiveHunter", "TopUpLegend", "StarLord", "KhmerFighter", "IronSoul"];
-      const index = Math.abs(playerId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0)) % names.length;
-      return { success: true, nickname: names[index] };
+      return { success: false, error: "TopUpLive credentials are not configured. Please contact support." };
     }
 
-    // Standard TopUpLive validation simulation/integration
-    const names = ["LiveHunter", "TopUpLegend", "StarLord", "KhmerFighter", "IronSoul"];
-    const index = Math.abs(playerId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0)) % names.length;
-    return { success: true, nickname: names[index] };
+    const params = {
+      merchantId,
+      playerId,
+      zoneId: zoneId || "",
+      timestamp: Math.floor(Date.now() / 1000).toString(),
+    };
+
+    const paramString = `${params.merchantId}|${params.playerId}|${params.zoneId}|${params.timestamp}`;
+    const signature = crypto
+      .createHmac("sha256", apiKey)
+      .update(paramString)
+      .digest("hex");
+
+    try {
+      const response = await fetch(validateUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Signature": signature,
+        },
+        body: JSON.stringify({ ...params, sign: signature }),
+      });
+
+      const result = await response.json();
+      if ((result.status === "success" || result.code === 200) && result.nickname) {
+        return { success: true, nickname: result.nickname };
+      } else {
+        return { success: false, error: result.message || "Player ID not found. Please check your ID and Zone ID." };
+      }
+    } catch (error: any) {
+      return { success: false, error: error.message || "Could not connect to verification service. Please try again." };
+    }
   }
 }
