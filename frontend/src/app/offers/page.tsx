@@ -225,7 +225,7 @@ function DealCard({ deal }: { deal: Deal }) {
   );
 }
 
-const mapPromoToDeal = (promo: any, t: any): Deal => {
+const mapPromoToDeal = (promo: any, t: any, lang: string): Deal => {
   const codeUpper = promo.code.toUpperCase();
   
   if (codeUpper === "MLBB10") {
@@ -233,7 +233,7 @@ const mapPromoToDeal = (promo: any, t: any): Deal => {
       title: t.offers.deal1Title || "MLBB Diamond Boost",
       desc: t.offers.deal1Desc || "Get 10% extra diamonds on Mobile Legends top-ups.",
       code: promo.code,
-      discount: "10% Extra",
+      discount: lang === "kh" ? "បន្ថែម ១០%" : "10% Extra",
       badge: t.offers.deal1Badge || "Hot Deal",
       accentFrom: "#ec4899",
       accentTo: "#8b5cf6",
@@ -250,7 +250,7 @@ const mapPromoToDeal = (promo: any, t: any): Deal => {
       title: t.offers.deal2Title || "Roblox Accessories Bundle",
       desc: t.offers.deal2Desc || "Receive a free limited-edition accessory pack.",
       code: promo.code,
-      discount: "Free Item",
+      discount: lang === "kh" ? "កញ្ចប់ឥតគិតថ្លៃ" : "Free Item",
       badge: t.offers.deal2Badge || "Exclusive",
       accentFrom: "#10b981",
       accentTo: "#14b8a6",
@@ -267,7 +267,7 @@ const mapPromoToDeal = (promo: any, t: any): Deal => {
       title: t.offers.deal3Title || "New User Cashback",
       desc: t.offers.deal3Desc || "5% cashback instantly credited on your first top-up.",
       code: promo.code,
-      discount: "5% Back",
+      discount: lang === "kh" ? "សងប្រាក់ ៥%" : "5% Back",
       badge: t.offers.deal3Badge || "New User",
       accentFrom: "#f59e0b",
       accentTo: "#f97316",
@@ -285,28 +285,28 @@ const mapPromoToDeal = (promo: any, t: any): Deal => {
       accentTo: "#3b82f6",
       accentText: "#00e5ff",
       glowColor: "rgba(0,229,255,0.06)",
-      badge: "Special Promo",
+      badge: lang === "kh" ? "ប្រូម៉ូសិនពិសេស" : "Special Promo",
     },
     {
       accentFrom: "#ec4899",
       accentTo: "#f43f5e",
       accentText: "#f43f5e",
       glowColor: "rgba(244,63,94,0.06)",
-      badge: "Limited Offer",
+      badge: lang === "kh" ? "ការផ្តល់ជូនមានកំណត់" : "Limited Offer",
     },
     {
       accentFrom: "#a855f7",
       accentTo: "#6366f1",
       accentText: "#a855f7",
       glowColor: "rgba(168,85,247,0.06)",
-      badge: "Flash Sale",
+      badge: lang === "kh" ? "លក់បញ្ចុះតម្លៃពិសេស" : "Flash Sale",
     },
     {
       accentFrom: "#10b981",
       accentTo: "#06b6d4",
       accentText: "#10b981",
       glowColor: "rgba(16,185,129,0.06)",
-      badge: "Store Discount",
+      badge: lang === "kh" ? "បញ្ចុះតម្លៃក្នុងហាង" : "Store Discount",
     }
   ];
 
@@ -318,16 +318,24 @@ const mapPromoToDeal = (promo: any, t: any): Deal => {
   const design = presets[index];
 
   const discPercent = Math.round(promo.discount * 100);
-  const discountLabel = discPercent > 0 ? `${discPercent}% Off` : "Special Deal";
+  const discountLabel = lang === "kh" 
+    ? (discPercent > 0 ? `បញ្ចុះតម្លៃ ${discPercent}%` : "ប្រូម៉ូសិនពិសេស") 
+    : (discPercent > 0 ? `${discPercent}% Off` : "Special Deal");
 
-  const targetGameName = promo.game?.name || "All Games";
+  const targetGameName = promo.game?.name || (lang === "kh" ? "ហ្គេមទាំងអស់" : "All Games");
   const targetGameSlug = promo.game?.slug ? `games/${promo.game.slug}` : "games";
 
+  const customTitle = promo.game 
+    ? (lang === "kh" ? `បញ្ចុះតម្លៃពិសេសសម្រាប់ ${promo.game.name}` : `${promo.game.name} Discount`) 
+    : (lang === "kh" ? `បញ្ចុះតម្លៃពិសេសក្នុងហាង` : `Exclusive Store Discount`);
+
+  const customDesc = promo.game 
+    ? (lang === "kh" ? `ទទួលបានការបញ្ចុះតម្លៃ ${discountLabel} ពិសេសលើកញ្ចប់បញ្ចូលលុយ ${promo.game.name}។ ប្រើកូដប្រូម៉ូសិននេះពេលបង់ប្រាក់។` : `Get a special ${discountLabel} discount on ${promo.game.name} packages. Apply the promo code at checkout.`) 
+    : (lang === "kh" ? `ទទួលបានការបញ្ចុះតម្លៃ ${discountLabel} ពិសេសលើការបញ្ចូលលុយរបស់អ្នក។ ប្រើកូដប្រូម៉ូសិននេះពេលបង់ប្រាក់។` : `Get a special ${discountLabel} discount on your top-up. Apply the promo code at checkout.`);
+
   return {
-    title: promo.game ? `${promo.game.name} Discount` : `Exclusive Store Discount`,
-    desc: promo.game 
-      ? `Get a special ${discountLabel} discount on ${promo.game.name} packages. Apply the promo code at checkout.` 
-      : `Get a special ${discountLabel} discount on your top-up. Apply the promo code at checkout.`,
+    title: customTitle,
+    desc: customDesc,
     code: promo.code,
     discount: discountLabel,
     badge: design.badge,
@@ -343,7 +351,7 @@ const mapPromoToDeal = (promo: any, t: any): Deal => {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function OffersPage() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [deals, setDeals] = useState<Deal[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -352,14 +360,14 @@ export default function OffersPage() {
       try {
         const promoCodes = await apiService.getPromos();
         if (promoCodes && promoCodes.length > 0) {
-          const mapped = promoCodes.map((p: any) => mapPromoToDeal(p, t));
+          const mapped = promoCodes.map((p: any) => mapPromoToDeal(p, t, language));
           setDeals(mapped);
         } else {
           const fallback = [
             { code: "MLBB10", discount: 0.10 },
             { code: "ROBLOXACC", discount: 0.15 },
             { code: "NEWGAMER", discount: 0.05 }
-          ].map(p => mapPromoToDeal(p, t));
+          ].map(p => mapPromoToDeal(p, t, language));
           setDeals(fallback);
         }
       } catch (err) {
@@ -368,14 +376,14 @@ export default function OffersPage() {
           { code: "MLBB10", discount: 0.10 },
           { code: "ROBLOXACC", discount: 0.15 },
           { code: "NEWGAMER", discount: 0.05 }
-        ].map(p => mapPromoToDeal(p, t));
+        ].map(p => mapPromoToDeal(p, t, language));
         setDeals(fallback);
       } finally {
         setLoading(false);
       }
     }
     loadDeals();
-  }, [t]);
+  }, [t, language]);
 
   return (
     <div className="flex flex-col min-h-screen bg-[#080b11] text-gray-200">
