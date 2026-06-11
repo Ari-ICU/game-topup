@@ -246,20 +246,22 @@ export default function GameTopupPage() {
     );
   }, [game, pkgSearch]);
 
-  const handleCheckId = () => {
+  const handleCheckId = async () => {
     if (!playerId.trim()) return;
     setIdCheckStatus("CHECKING");
     setCheckedName("");
-    setTimeout(() => {
-      if (playerId.trim().length >= 4) {
-        const mockNames = ["WarriorX", "ShadowBlade", "PhoenixRise", "NightHunter", "StarForge"];
-        const name = mockNames[playerId.trim().length % mockNames.length];
-        setCheckedName(name);
+    try {
+      const res = await apiService.validatePlayerId(slug as string, playerId, zoneId);
+      if (res.success && res.nickname) {
+        setCheckedName(res.nickname);
         setIdCheckStatus("FOUND");
       } else {
         setIdCheckStatus("NOT_FOUND");
       }
-    }, 1200);
+    } catch (err) {
+      console.error("Player ID check failed:", err);
+      setIdCheckStatus("NOT_FOUND");
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

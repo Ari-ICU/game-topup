@@ -133,14 +133,34 @@ export const getRecentCompletedTx = async (req: Request, res: Response, next: Ne
   }
 };
 
-/**
- * Handle fetching active promos list
- */
 export const getActivePromos = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const promos = await transactionService.getActivePromos();
     res.json(promos);
   } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Handle validating a player ID
+ */
+export const validatePlayerId = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+  try {
+    const { gameSlug, playerId, zoneId } = req.query;
+    if (!gameSlug || !playerId) {
+      return res.status(400).json({ error: "Missing gameSlug or playerId parameters" });
+    }
+    const result = await transactionService.validatePlayerId(
+      gameSlug as string,
+      playerId as string,
+      zoneId as string | undefined
+    );
+    res.json(result);
+  } catch (error: any) {
+    if (error.message === "Game not found") {
+      return res.status(404).json({ error: error.message });
+    }
     next(error);
   }
 };

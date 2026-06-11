@@ -688,3 +688,32 @@ export const getActivePromos = async () => {
   });
 };
 
+/**
+ * Validate a player ID for a specific game
+ */
+export const validatePlayerId = async (gameSlug: string, playerId: string, zoneId?: string) => {
+  const game = await prisma.game.findUnique({
+    where: { slug: gameSlug },
+    include: { packages: true },
+  });
+
+  if (!game) {
+    throw new Error("Game not found");
+  }
+
+  // Determine provider by checking the first package's Sku prefix
+  const firstPkg = game.packages[0];
+  const sku = firstPkg?.providerSku || "";
+
+  if (sku.toLowerCase().startsWith("unipin")) {
+    const client = new UniPinClient();
+    return await client.validatePlayer(playerId, zoneId);
+  } else if (sku.toLowerCase().startsWith("topuplive")) {
+    const client = new TopUpLiveClient();
+    return await client.validatePlayer(playerId, zoneId);
+  } else {
+    const client = new SmileOneClient();
+    return await client.validatePlayer(playerId, zoneId);
+  }
+};
+

@@ -101,6 +101,23 @@ export const apiService = {
       throw new Error(errorData.error || "Failed to fetch promotions");
     }
     return await res.json();
+  },
+
+  /**
+   * Validate a player ID via backend
+   */
+  async validatePlayerId(gameSlug: string, playerId: string, zoneId?: string): Promise<{ success: boolean; nickname?: string; error?: string }> {
+    const params = new URLSearchParams({
+      gameSlug,
+      playerId,
+      ...(zoneId ? { zoneId } : {})
+    });
+    const res = await fetch(`/api/transactions/validate-player?${params.toString()}`);
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.error || "Failed to validate player ID");
+    }
+    return await res.json();
   }
 };
 

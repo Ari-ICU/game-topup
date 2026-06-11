@@ -62,6 +62,13 @@ router.get(
   transactionController.getRecentCompletedTx
 );
 
+// Validate player ID
+router.get(
+  "/validate-player",
+  publicRateLimiter,
+  transactionController.validatePlayerId
+);
+
 // Get transaction by ID
 router.get(
   "/:id",
