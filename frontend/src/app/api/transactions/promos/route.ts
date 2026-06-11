@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
-  const API_URL = process.env.BACKEND_API_URL || "http://localhost:5001";
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001";
 
   try {
     const res = await fetch(`${API_URL}/api/transactions/promos`, {

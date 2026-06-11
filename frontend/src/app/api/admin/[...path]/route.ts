@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
 export async function GET(request: Request, { params }: { params: Promise<{ path: string[] }> }) {
-  const API_URL = process.env.BACKEND_API_URL || "http://localhost:5001";
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001";
   const { path } = await params;
   const pathStr = path.join("/");
   const url = new URL(request.url);
@@ -29,7 +29,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ path
 }
 
 export async function POST(request: Request, { params }: { params: Promise<{ path: string[] }> }) {
-  const API_URL = process.env.BACKEND_API_URL || "http://localhost:5001";
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001";
   const { path } = await params;
   const pathStr = path.join("/");
 
@@ -86,7 +86,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ pat
 }
 
 export async function PUT(request: Request, { params }: { params: Promise<{ path: string[] }> }) {
-  const API_URL = process.env.BACKEND_API_URL || "http://localhost:5001";
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001";
   const { path } = await params;
   const pathStr = path.join("/");
 
@@ -120,7 +120,7 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ path: string[] }> }
 ) {
-  const API_URL = process.env.BACKEND_API_URL || "http://localhost:5001";
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001";
 
   const { path } = await params;
   const pathStr = path.join("/");
@@ -175,7 +175,7 @@ export async function PATCH(
 }
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ path: string[] }> }) {
-  const API_URL = process.env.BACKEND_API_URL || "http://localhost:5001";
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001";
   const { path } = await params;
   const pathStr = path.join("/");
 
