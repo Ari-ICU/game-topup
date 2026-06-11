@@ -32,6 +32,12 @@ model Game {
   createdAt     DateTime       @default(now())
 }
 
+enum Provider {
+  SMILE_ONE
+  UNIPIN
+  TOPUPLIVE
+}
+
 model Package {
   id            String         @id @default(auto()) @map("_id") @db.ObjectId
   gameId        String         @db.ObjectId
@@ -41,7 +47,8 @@ model Package {
   price         Float          // Price of package
   originalPrice Float          // Original price before discount
   bestValue     Boolean        @default(false)
-  providerSku   String         // External SKU for the top-up provider
+  providerSku   String         // External SKU/product ID from the provider dashboard
+  provider      Provider       @default(SMILE_ONE) // Which reseller API handles this package
   transactions  Transaction[]
 }
 
@@ -54,23 +61,26 @@ enum TransactionStatus {
 }
 
 model Transaction {
-  id                String            @id @default(auto()) @map("_id") @db.ObjectId
-  userId            String?           @db.ObjectId
-  user              User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
-  packageId         String            @db.ObjectId
-  package           Package           @relation(fields: [packageId], references: [id], onDelete: Cascade)
-  status            TransactionStatus @default(PENDING)
-  paymentMethod     String            // 'ABA', 'WING', 'BAKONG', 'KHQR'
-  paymentRef        String?           // External payment ID
-  providerRef       String?           // External top-up provider ID
-  playerInfo        Json              // Captured IDs: { "playerId": "12345", "zoneId": "999" }
-  totalAmount       Float
-  promoCodeUsed     String?
-  discountAmount    Float?            @default(0)
-  vipDiscountAmount Float?            @default(0)
-  qrCode            String?
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  id                  String            @id @default(auto()) @map("_id") @db.ObjectId
+  userId              String?           @db.ObjectId
+  user                User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  packageId           String            @db.ObjectId
+  package             Package           @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  status              TransactionStatus @default(PENDING)
+  paymentMethod       String            // 'ABA', 'WING', 'BAKONG', 'KHQR'
+  paymentRef          String?           // External payment ID
+  providerRef         String?           // External top-up provider order ID
+  playerInfo          Json              // Captured IDs: { "playerId": "12345", "zoneId": "999" }
+  totalAmount         Float
+  promoCodeUsed       String?
+  discountAmount      Float?            @default(0)
+  vipDiscountAmount   Float?            @default(0)
+  qrCode              String?
+  fulfillmentStatus   String?           // "DELIVERED" | "FAILED" | "MOCK" | "PENDING"
+  fulfillmentError    String?           // Provider error message if delivery failed
+  fulfillmentAttempts Int               @default(0) // Number of delivery attempts made
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
 }
 
 model KhqrSettings {

@@ -27,6 +27,9 @@ interface Transaction {
   paymentMethod: string;
   paymentRef: string | null;
   providerRef: string | null;
+  fulfillmentStatus?: string | null;
+  fulfillmentError?: string | null;
+  fulfillmentAttempts?: number | null;
   createdAt: string;
   package: {
     name: string;
@@ -125,6 +128,35 @@ export default function AdminTransactions() {
       setError(err.message || "Manual completion override failed.");
     } finally {
       setOverrideLoading(false);
+    }
+  };
+
+  const handleManualFulfill = async (txId: string) => {
+    setLoading(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const res = await fetch(`/api/admin/transactions/${txId}/fulfill`, {
+        method: "POST",
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Fulfillment request rejected by backend.");
+      }
+
+      const updated = await res.json();
+      
+      setMessage(`Fulfillment triggered for Order #${txId}. Result: ${updated.fulfillmentStatus || "Success"}`);
+      setTimeout(() => setMessage(""), 5000);
+      
+      await fetchTransactions(page, search, status);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Manual fulfillment retry failed.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -228,6 +260,7 @@ export default function AdminTransactions() {
                 <th className="py-3 px-4">Player Details</th>
                 <th className="py-3 px-4">Total Price</th>
                 <th className="py-3 px-4">Status</th>
+                <th className="py-3 px-4">Fulfillment</th>
                 <th className="py-3 px-4">Ref Numbers</th>
                 <th className="py-3 px-4">Date</th>
                 <th className="py-3 px-4 text-right">Actions</th>
@@ -312,6 +345,37 @@ export default function AdminTransactions() {
                       </span>
                     </td>
 
+                    {/* Fulfillment */}
+                    <td className="py-3.5 px-4">
+                      {tx.status === "COMPLETED" ? (
+                        <div className="flex flex-col gap-1">
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border w-fit ${
+                            tx.fulfillmentStatus === "DELIVERED"
+                              ? "bg-green-500/10 text-green-400 border-green-500/20"
+                              : tx.fulfillmentStatus === "MOCK"
+                              ? "bg-purple-500/10 text-purple-400 border-purple-500/20"
+                              : tx.fulfillmentStatus === "FAILED"
+                              ? "bg-red-500/10 text-red-400 border-red-500/20"
+                              : "bg-yellow-500/10 text-yellow-400 border-yellow-500/20 animate-pulse"
+                          }`}>
+                            {tx.fulfillmentStatus || "PENDING"}
+                          </span>
+                          {tx.fulfillmentError && (
+                            <span className="text-[9px] text-red-400 font-mono max-w-[150px] truncate block" title={tx.fulfillmentError}>
+                              {tx.fulfillmentError}
+                            </span>
+                          )}
+                          {tx.fulfillmentAttempts !== undefined && tx.fulfillmentAttempts !== null && (
+                            <span className="text-[9px] text-gray-500">
+                              Attempts: {tx.fulfillmentAttempts}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-500 font-bold px-2">—</span>
+                      )}
+                    </td>
+
                     {/* References */}
                     <td className="py-3.5 px-4">
                       <div className="text-[10px] space-y-0.5 font-mono text-gray-400 leading-tight">
@@ -346,16 +410,27 @@ export default function AdminTransactions() {
 
                     {/* Actions */}
                     <td className="py-3.5 px-4 text-right">
-                      {tx.status === "PENDING" || tx.status === "PROCESSING" || tx.status === "FAILED" ? (
-                        <button
-                          onClick={() => setOverridingId(tx.id)}
-                          className="px-2.5 py-1 bg-brand-cyan/10 hover:bg-brand-cyan text-brand-cyan hover:text-[#080b11] border border-brand-cyan/20 hover:border-transparent text-xs font-bold rounded-lg cursor-pointer transition-all"
-                        >
-                          Manual Complete
-                        </button>
-                      ) : (
-                        <span className="text-xs text-gray-500 font-bold px-2.5">—</span>
-                      )}
+                      <div className="flex justify-end gap-2">
+                        {(tx.status === "PENDING" || tx.status === "PROCESSING" || tx.status === "FAILED") && (
+                          <button
+                            onClick={() => setOverridingId(tx.id)}
+                            className="px-2.5 py-1 bg-brand-cyan/10 hover:bg-brand-cyan text-brand-cyan hover:text-[#080b11] border border-brand-cyan/20 hover:border-transparent text-xs font-bold rounded-lg cursor-pointer transition-all"
+                          >
+                            Manual Complete
+                          </button>
+                        )}
+                        {tx.status === "COMPLETED" && tx.fulfillmentStatus !== "DELIVERED" && (
+                          <button
+                            onClick={() => handleManualFulfill(tx.id)}
+                            className="px-2.5 py-1 bg-brand-purple/10 hover:bg-brand-purple text-brand-purple hover:text-white border border-brand-purple/20 hover:border-transparent text-xs font-bold rounded-lg cursor-pointer transition-all"
+                          >
+                            Retry Fulfill
+                          </button>
+                        )}
+                        {tx.status === "COMPLETED" && tx.fulfillmentStatus === "DELIVERED" && (
+                          <span className="text-xs text-gray-500 font-bold px-2.5">—</span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))

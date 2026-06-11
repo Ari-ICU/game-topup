@@ -35,6 +35,7 @@ router.delete("/packages/:id", adminController.deletePackage);
 
 router.get("/transactions", adminController.getTransactions);
 router.post("/transactions/:id/complete", adminController.completeTransaction);
+router.post("/transactions/:id/fulfill", adminController.fulfillTransaction);
 
 // Upload endpoint: override body limit to 10mb for base64 image uploads
 router.post("/upload", express.json({ limit: "10mb" }), adminController.uploadFile);

@@ -1,5 +1,5 @@
 /// <reference types="node" />
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Provider } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -32,11 +32,11 @@ async function main() {
       inputConfig: { playerId: "string", zoneId: "string" },
       isHot: true,
       packages: [
-        { name: "86 Diamonds", amount: 86, price: 1.5, originalPrice: 1.8, providerSku: "ml-86" },
-        { name: "172 Diamonds", amount: 172, price: 3.0, originalPrice: 3.6, providerSku: "ml-172" },
-        { name: "257 Diamonds", amount: 257, price: 4.5, originalPrice: 5.4, providerSku: "ml-257" },
-        { name: "706 Diamonds", amount: 706, price: 12.0, originalPrice: 15.0, providerSku: "ml-706", bestValue: true },
-        { name: "2195 Diamonds", amount: 2195, price: 35.0, originalPrice: 42.0, providerSku: "ml-2195" },
+        { name: "86 Diamonds", amount: 86, price: 1.5, originalPrice: 1.8, providerSku: "smileone-MLBB-86", provider: Provider.SMILE_ONE },
+        { name: "172 Diamonds", amount: 172, price: 3.0, originalPrice: 3.6, providerSku: "smileone-MLBB-172", provider: Provider.SMILE_ONE },
+        { name: "257 Diamonds", amount: 257, price: 4.5, originalPrice: 5.4, providerSku: "smileone-MLBB-257", provider: Provider.SMILE_ONE },
+        { name: "706 Diamonds", amount: 706, price: 12.0, originalPrice: 15.0, providerSku: "smileone-MLBB-706", bestValue: true, provider: Provider.SMILE_ONE },
+        { name: "2195 Diamonds", amount: 2195, price: 35.0, originalPrice: 42.0, providerSku: "smileone-MLBB-2195", provider: Provider.SMILE_ONE },
       ],
     },
     {
@@ -46,11 +46,11 @@ async function main() {
       inputConfig: { playerId: "string" },
       isHot: false,
       packages: [
-        { name: "60 UC", amount: 60, price: 1.0, originalPrice: 1.2, providerSku: "pubg-60" },
-        { name: "325 UC", amount: 325, price: 5.0, originalPrice: 6.0, providerSku: "pubg-325" },
-        { name: "660 UC", amount: 660, price: 10.0, originalPrice: 12.0, providerSku: "pubg-660", bestValue: true },
-        { name: "1800 UC", amount: 1800, price: 25.0, originalPrice: 30.0, providerSku: "pubg-1800" },
-        { name: "3850 UC", amount: 3850, price: 50.0, originalPrice: 60.0, providerSku: "pubg-3850" },
+        { name: "60 UC", amount: 60, price: 1.0, originalPrice: 1.2, providerSku: "unipin-PUBG-60", provider: Provider.UNIPIN },
+        { name: "325 UC", amount: 325, price: 5.0, originalPrice: 6.0, providerSku: "unipin-PUBG-325", provider: Provider.UNIPIN },
+        { name: "660 UC", amount: 660, price: 10.0, originalPrice: 12.0, providerSku: "unipin-PUBG-660", bestValue: true, provider: Provider.UNIPIN },
+        { name: "1800 UC", amount: 1800, price: 25.0, originalPrice: 30.0, providerSku: "unipin-PUBG-1800", provider: Provider.UNIPIN },
+        { name: "3850 UC", amount: 3850, price: 50.0, originalPrice: 60.0, providerSku: "unipin-PUBG-3850", provider: Provider.UNIPIN },
       ],
     },
     {
@@ -60,11 +60,11 @@ async function main() {
       inputConfig: { playerId: "string" },
       isHot: false,
       packages: [
-        { name: "100 Diamonds", amount: 100, price: 1.0, originalPrice: 1.2, providerSku: "ff-100" },
-        { name: "310 Diamonds", amount: 310, price: 3.0, originalPrice: 3.6, providerSku: "ff-310" },
-        { name: "520 Diamonds", amount: 520, price: 5.0, originalPrice: 6.0, providerSku: "ff-520", bestValue: true },
-        { name: "1060 Diamonds", amount: 1060, price: 10.0, originalPrice: 12.0, providerSku: "ff-1060" },
-        { name: "2180 Diamonds", amount: 2180, price: 20.0, originalPrice: 24.0, providerSku: "ff-2180" },
+        { name: "100 Diamonds", amount: 100, price: 1.0, originalPrice: 1.2, providerSku: "smileone-FF-100", provider: Provider.SMILE_ONE },
+        { name: "310 Diamonds", amount: 310, price: 3.0, originalPrice: 3.6, providerSku: "smileone-FF-310", provider: Provider.SMILE_ONE },
+        { name: "520 Diamonds", amount: 520, price: 5.0, originalPrice: 6.0, providerSku: "smileone-FF-520", bestValue: true, provider: Provider.SMILE_ONE },
+        { name: "1060 Diamonds", amount: 1060, price: 10.0, originalPrice: 12.0, providerSku: "smileone-FF-1060", provider: Provider.SMILE_ONE },
+        { name: "2180 Diamonds", amount: 2180, price: 20.0, originalPrice: 24.0, providerSku: "smileone-FF-2180", provider: Provider.SMILE_ONE },
       ],
     },
     {
@@ -74,10 +74,10 @@ async function main() {
       inputConfig: { username: "string" },
       isHot: false,
       packages: [
-        { name: "400 Robux", amount: 400, price: 5.0, originalPrice: 6.0, providerSku: "rb-400" },
-        { name: "800 Robux", amount: 800, price: 10.0, originalPrice: 12.0, providerSku: "rb-800", bestValue: true },
-        { name: "1700 Robux", amount: 1700, price: 20.0, originalPrice: 24.0, providerSku: "rb-1700" },
-        { name: "4500 Robux", amount: 4500, price: 50.0, originalPrice: 60.0, providerSku: "rb-4500" },
+        { name: "400 Robux", amount: 400, price: 5.0, originalPrice: 6.0, providerSku: "topuplive-ROBLOX-400", provider: Provider.TOPUPLIVE },
+        { name: "800 Robux", amount: 800, price: 10.0, originalPrice: 12.0, providerSku: "topuplive-ROBLOX-800", bestValue: true, provider: Provider.TOPUPLIVE },
+        { name: "1700 Robux", amount: 1700, price: 20.0, originalPrice: 24.0, providerSku: "topuplive-ROBLOX-1700", provider: Provider.TOPUPLIVE },
+        { name: "4500 Robux", amount: 4500, price: 50.0, originalPrice: 60.0, providerSku: "topuplive-ROBLOX-4500", provider: Provider.TOPUPLIVE },
       ],
     },
   ];
@@ -97,6 +97,7 @@ async function main() {
             price: pkg.price,
             originalPrice: pkg.originalPrice,
             providerSku: pkg.providerSku,
+            provider: pkg.provider,
             bestValue: pkg.bestValue || false,
           })),
         },

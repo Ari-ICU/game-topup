@@ -547,16 +547,51 @@ export const expireOldTransactions = async (maxAgeMinutes: number = 60) => {
 };
 
 /**
- * Fulfill the top-up order by calling the third-party reseller API (Smile One or UniPin)
+ * Determine the correct provider client for a package using the explicit provider field.
+ * Falls back to SKU-prefix detection for legacy packages that don't have provider set.
+ */
+const getProviderClient = (pkg: { provider?: string | null; providerSku: string }) => {
+  const provider = pkg.provider || "";
+  const sku = pkg.providerSku?.toLowerCase() || "";
+
+  // Explicit provider field takes priority (new packages)
+  if (provider === "UNIPIN" || sku.startsWith("unipin")) {
+    return { client: new UniPinClient(), name: "UniPin" };
+  }
+  if (provider === "TOPUPLIVE" || sku.startsWith("topuplive")) {
+    return { client: new TopUpLiveClient(), name: "TopUpLive" };
+  }
+  // Default: Smile One
+  return { client: new SmileOneClient(), name: "SmileOne" };
+};
+
+/**
+ * Attempt a single provider call and return structured result.
+ */
+const attemptFulfill = async (
+  providerName: string,
+  client: SmileOneClient | UniPinClient | TopUpLiveClient,
+  payload: { providerSku: string; playerInfo: any; transactionId: string }
+): Promise<{ success: boolean; providerRef?: string; error?: string }> => {
+  try {
+    const res = await client.processTopup(payload);
+    return res;
+  } catch (err: any) {
+    return { success: false, error: err.message || `${providerName} connection error` };
+  }
+};
+
+/**
+ * Fulfill the top-up order by calling the third-party reseller API.
+ * Routes by explicit Package.provider enum (not fragile SKU-prefix guessing).
+ * Includes 1 automatic retry on failure and tracks fulfillmentStatus.
  */
 export const fulfillOrder = async (transactionId: string) => {
   const transaction = await prisma.transaction.findUnique({
     where: { id: transactionId },
     include: {
       package: {
-        include: {
-          game: true,
-        },
+        include: { game: true },
       },
     },
   });
@@ -566,51 +601,107 @@ export const fulfillOrder = async (transactionId: string) => {
     return null;
   }
 
-  const sku = transaction.package.providerSku || "";
-  let providerRef = `PROV-MOCK-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
+  const { client, name: providerName } = getProviderClient(transaction.package);
+  const payload = {
+    providerSku: transaction.package.providerSku,
+    playerInfo: transaction.playerInfo as any,
+    transactionId: transaction.id,
+  };
 
-  try {
-    if (sku.toLowerCase().startsWith("unipin")) {
-      const client = new UniPinClient();
-      const res = await client.processTopup({
-        providerSku: sku,
-        playerInfo: transaction.playerInfo as any,
-        transactionId: transaction.id
-      });
-      if (res.success && res.providerRef) {
-        providerRef = res.providerRef;
-      }
-    } else if (sku.toLowerCase().startsWith("topuplive")) {
-      const client = new TopUpLiveClient();
-      const res = await client.processTopup({
-        providerSku: sku,
-        playerInfo: transaction.playerInfo as any,
-        transactionId: transaction.id
-      });
-      if (res.success && res.providerRef) {
-        providerRef = res.providerRef;
-      }
-    } else {
-      const client = new SmileOneClient();
-      const res = await client.processTopup({
-        providerSku: sku,
-        playerInfo: transaction.playerInfo as any,
-        transactionId: transaction.id
-      });
-      if (res.success && res.providerRef) {
-        providerRef = res.providerRef;
-      }
-    }
-  } catch (err: any) {
-    console.error(`[Fulfillment Error] Failed for tx ${transactionId}:`, err.message);
+  const currentAttempts = transaction.fulfillmentAttempts ?? 0;
+
+  // --- Check if credentials exist. If not, record as MOCK and skip real call ---
+  const settings = await prisma.khqrSettings.findFirst({
+    where: { isActive: true },
+    orderBy: { updatedAt: "desc" },
+  });
+
+  const hasSmileOneCreds = !!(settings?.smileOneEmail && settings?.smileOneApiKey);
+  const hasUniPinCreds = !!(settings?.uniPinSecret);
+  const hasTopUpLiveCreds = !!(settings?.topUpLiveMerchantId && settings?.topUpLiveApiKey);
+
+  const providerField = transaction.package.provider || "SMILE_ONE";
+  const isMockMode =
+    (providerField === "SMILE_ONE" && !hasSmileOneCreds) ||
+    (providerField === "UNIPIN" && !hasUniPinCreds) ||
+    (providerField === "TOPUPLIVE" && !hasTopUpLiveCreds);
+
+  if (isMockMode) {
+    const mockRef = `MOCK-${providerName.toUpperCase()}-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
+    console.log(`[Fulfillment] MOCK mode — no credentials for ${providerName}. Ref: ${mockRef}`);
+    return await prisma.transaction.update({
+      where: { id: transactionId },
+      data: {
+        providerRef: mockRef,
+        fulfillmentStatus: "MOCK",
+        fulfillmentError: null,
+        fulfillmentAttempts: currentAttempts + 1,
+      },
+    });
   }
 
+  // --- Attempt 1 ---
+  console.log(`[Fulfillment] Attempt 1 via ${providerName} for tx: ${transactionId}`);
+  let result = await attemptFulfill(providerName, client, payload);
+
+  // --- Attempt 2 (automatic retry on failure) ---
+  if (!result.success) {
+    console.warn(`[Fulfillment] Attempt 1 failed (${result.error}). Retrying in 3s...`);
+    await new Promise((r) => setTimeout(r, 3000));
+    console.log(`[Fulfillment] Attempt 2 via ${providerName} for tx: ${transactionId}`);
+    result = await attemptFulfill(providerName, client, payload);
+  }
+
+  if (result.success && result.providerRef) {
+    console.log(`[Fulfillment] ✅ Delivered via ${providerName}. ProviderRef: ${result.providerRef}`);
+    return await prisma.transaction.update({
+      where: { id: transactionId },
+      data: {
+        providerRef: result.providerRef,
+        fulfillmentStatus: "DELIVERED",
+        fulfillmentError: null,
+        fulfillmentAttempts: currentAttempts + 2,
+      },
+    });
+  }
+
+  // Both attempts failed — record error so admin can see and retry manually
+  console.error(`[Fulfillment] ❌ Both attempts failed for tx ${transactionId}: ${result.error}`);
   return await prisma.transaction.update({
     where: { id: transactionId },
     data: {
-      providerRef,
+      fulfillmentStatus: "FAILED",
+      fulfillmentError: result.error || "Provider rejected the order after 2 attempts",
+      fulfillmentAttempts: currentAttempts + 2,
     },
   });
+};
+
+/**
+ * Manually retry fulfillment for a COMPLETED transaction where delivery failed.
+ * Called by admin via POST /admin/transactions/:id/fulfill
+ * Bypasses automated checks to re-attempt top-up reseller delivery.
+ */
+export const retryFulfillOrder = async (transactionId: string) => {
+  const transaction = await prisma.transaction.findUnique({
+    where: { id: transactionId },
+    include: { package: { include: { game: true } } },
+  });
+
+  if (!transaction) {
+    throw new Error("Transaction not found");
+  }
+
+  if (transaction.status !== "COMPLETED") {
+    throw new Error("Only COMPLETED transactions can be re-fulfilled");
+  }
+
+  if (transaction.fulfillmentStatus === "DELIVERED") {
+    throw new Error("This transaction was already successfully delivered");
+  }
+
+  console.log(`[Fulfillment] Admin manually triggered re-fulfillment for tx: ${transactionId}`);
+  return await fulfillOrder(transactionId);
 };
 
 /**
@@ -689,7 +780,8 @@ export const getActivePromos = async () => {
 };
 
 /**
- * Validate a player ID for a specific game
+ * Validate a player ID for a specific game.
+ * Uses the same provider routing logic as fulfillOrder.
  */
 export const validatePlayerId = async (gameSlug: string, playerId: string, zoneId?: string) => {
   const game = await prisma.game.findUnique({
@@ -701,19 +793,13 @@ export const validatePlayerId = async (gameSlug: string, playerId: string, zoneI
     throw new Error("Game not found");
   }
 
-  // Determine provider by checking the first package's Sku prefix
   const firstPkg = game.packages[0];
-  const sku = firstPkg?.providerSku || "";
-
-  if (sku.toLowerCase().startsWith("unipin")) {
-    const client = new UniPinClient();
-    return await client.validatePlayer(playerId, zoneId);
-  } else if (sku.toLowerCase().startsWith("topuplive")) {
-    const client = new TopUpLiveClient();
-    return await client.validatePlayer(playerId, zoneId);
-  } else {
-    const client = new SmileOneClient();
-    return await client.validatePlayer(playerId, zoneId);
+  if (!firstPkg) {
+    throw new Error("No packages configured for this game");
   }
-};
 
+  // Use the same routing helper as fulfillOrder — enum-first, SKU-prefix fallback
+  const { client, name: providerName } = getProviderClient(firstPkg);
+  console.log(`[ValidatePlayer] Using ${providerName} for game: ${gameSlug}`);
+  return await client.validatePlayer(playerId, zoneId);
+};

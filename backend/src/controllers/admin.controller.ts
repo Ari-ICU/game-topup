@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import * as adminService from "../services/admin.service";
+import { retryFulfillOrder } from "../services/transaction.service";
 import jwt from "jsonwebtoken";
 
 // Failed passcode attempts tracker (IP -> { count, blockUntil })
@@ -205,11 +206,11 @@ export const deleteGame = async (req: Request, res: Response, next: NextFunction
  */
 export const createPackage = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
-    const { gameId, name, amount, price, originalPrice, bestValue, providerSku } = req.body;
+    const { gameId, name, amount, price, originalPrice, bestValue, providerSku, provider } = req.body;
     if (!gameId || !name || amount === undefined || price === undefined) {
       return res.status(400).json({ error: "Missing required package fields" });
     }
-    const pkg = await adminService.createPackage({ gameId, name, amount, price, originalPrice, bestValue, providerSku });
+    const pkg = await adminService.createPackage({ gameId, name, amount, price, originalPrice, bestValue, providerSku, provider });
     res.status(201).json(pkg);
   } catch (error) {
     next(error);
@@ -222,8 +223,8 @@ export const createPackage = async (req: Request, res: Response, next: NextFunct
 export const updatePackage = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const id = req.params.id as string;
-    const { name, amount, price, originalPrice, bestValue, providerSku } = req.body;
-    const pkg = await adminService.updatePackage(id, { name, amount, price, originalPrice, bestValue, providerSku });
+    const { name, amount, price, originalPrice, bestValue, providerSku, provider } = req.body;
+    const pkg = await adminService.updatePackage(id, { name, amount, price, originalPrice, bestValue, providerSku, provider });
     res.json(pkg);
   } catch (error) {
     next(error);
@@ -272,6 +273,26 @@ export const completeTransaction = async (req: Request, res: Response, next: Nex
   } catch (error: any) {
     if (error.message === "Transaction not found") {
       return res.status(404).json({ error: error.message });
+    }
+    next(error);
+  }
+};
+
+/**
+ * Manually re-trigger fulfillment for a COMPLETED transaction where delivery failed.
+ * Use this when fulfillmentStatus is "FAILED" or "MOCK" and you want to retry delivery.
+ */
+export const fulfillTransaction = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+  try {
+    const id = req.params.id as string;
+    const result = await retryFulfillOrder(id);
+    res.json({ success: true, fulfillmentStatus: (result as any)?.fulfillmentStatus, providerRef: (result as any)?.providerRef });
+  } catch (error: any) {
+    if (error.message === "Transaction not found") {
+      return res.status(404).json({ error: error.message });
+    }
+    if (error.message.includes("already successfully delivered") || error.message.includes("Only COMPLETED")) {
+      return res.status(400).json({ error: error.message });
     }
     next(error);
   }

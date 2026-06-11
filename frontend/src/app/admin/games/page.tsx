@@ -28,6 +28,7 @@ interface Package {
   originalPrice: number;
   bestValue: boolean;
   providerSku: string;
+  provider: "SMILE_ONE" | "UNIPIN" | "TOPUPLIVE";
 }
 
 interface Game {
@@ -73,7 +74,8 @@ export default function AdminGames() {
     price: 0.99,
     originalPrice: 0.99,
     bestValue: false,
-    providerSku: "SKU-DEFAULT"
+    providerSku: "SKU-DEFAULT",
+    provider: "SMILE_ONE"
   });
 
   // Deletions warning
@@ -275,7 +277,8 @@ export default function AdminGames() {
         price: pkg.price,
         originalPrice: pkg.originalPrice,
         bestValue: pkg.bestValue,
-        providerSku: pkg.providerSku
+        providerSku: pkg.providerSku,
+        provider: pkg.provider || "SMILE_ONE"
       });
     } else {
       setSelectedPkg(null);
@@ -285,7 +288,8 @@ export default function AdminGames() {
         price: 0.99,
         originalPrice: 0.99,
         bestValue: false,
-        providerSku: "SKU-DEFAULT"
+        providerSku: "SKU-DEFAULT",
+        provider: "SMILE_ONE"
       });
     }
     setPkgModalOpen(true);
@@ -302,7 +306,8 @@ export default function AdminGames() {
       price: Number(pkgForm.price),
       originalPrice: Number(pkgForm.originalPrice),
       bestValue: pkgForm.bestValue,
-      providerSku: pkgForm.providerSku
+      providerSku: pkgForm.providerSku,
+      provider: pkgForm.provider
     };
 
     try {
@@ -499,6 +504,7 @@ export default function AdminGames() {
                             <th className="py-2.5 px-4">Sales Price</th>
                             <th className="py-2.5 px-4">Original (Strike)</th>
                             <th className="py-2.5 px-4">Provider SKU</th>
+                            <th className="py-2.5 px-4">Provider</th>
                             <th className="py-2.5 px-4">Tag</th>
                             <th className="py-2.5 px-4 text-right">Actions</th>
                           </tr>
@@ -506,7 +512,7 @@ export default function AdminGames() {
                         <tbody className="divide-y divide-[#1d2438]/50">
                           {game.packages.length === 0 ? (
                             <tr>
-                              <td colSpan={7} className="py-6 px-4 text-center text-gray-500 font-medium">
+                              <td colSpan={8} className="py-6 px-4 text-center text-gray-500 font-medium">
                                 No prices configured. Click "Add Package" above to populate catalog.
                               </td>
                             </tr>
@@ -528,6 +534,9 @@ export default function AdminGames() {
                                 </td>
                                 <td className="py-3 px-4 font-mono text-gray-400">
                                   {pkg.providerSku}
+                                </td>
+                                <td className="py-3 px-4 font-bold text-gray-300">
+                                  {pkg.provider || "SMILE_ONE"}
                                 </td>
                                 <td className="py-3 px-4">
                                   {pkg.bestValue && (
@@ -860,6 +869,22 @@ export default function AdminGames() {
                   />
                 </div>
               </div>
+            </div>
+
+            {/* Provider API Selection */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                Top-up Reseller Provider
+              </label>
+              <select
+                value={pkgForm.provider}
+                onChange={(e) => setPkgForm({ ...pkgForm, provider: e.target.value as any })}
+                className="block w-full px-4 py-2.5 bg-[#080b11]/80 border border-[#1d2438] rounded-xl text-white text-sm focus:outline-none focus:border-brand-purple"
+              >
+                <option value="SMILE_ONE">Smile One (Mobile Legends / Free Fire)</option>
+                <option value="UNIPIN">UniPin (PUBG Mobile)</option>
+                <option value="TOPUPLIVE">TopUpLive (Roblox)</option>
+              </select>
             </div>
 
             {/* Best Value indicator */}

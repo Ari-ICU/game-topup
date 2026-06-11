@@ -1,5 +1,5 @@
 import { prisma } from "../lib/prisma";
-import { TransactionStatus } from "@prisma/client";
+import { TransactionStatus, Provider } from "@prisma/client";
 import fs from "fs";
 import path from "path";
 import logger from "../utils/logger";
@@ -236,6 +236,7 @@ export const createPackage = async (data: {
   originalPrice?: number;
   bestValue?: boolean;
   providerSku?: string;
+  provider?: Provider;
 }) => {
   return await prisma.package.create({
     data: {
@@ -245,7 +246,8 @@ export const createPackage = async (data: {
       price: data.price,
       originalPrice: data.originalPrice !== undefined ? data.originalPrice : data.price,
       bestValue: Boolean(data.bestValue),
-      providerSku: data.providerSku || "SKU-DEFAULT"
+      providerSku: data.providerSku || "SKU-DEFAULT",
+      provider: data.provider
     }
   });
 };
@@ -260,6 +262,7 @@ export const updatePackage = async (id: string, data: {
   originalPrice?: number;
   bestValue?: boolean;
   providerSku?: string;
+  provider?: Provider;
 }) => {
   return await prisma.package.update({
     where: { id },
@@ -269,7 +272,8 @@ export const updatePackage = async (id: string, data: {
       price: data.price,
       originalPrice: data.originalPrice,
       bestValue: data.bestValue !== undefined ? Boolean(data.bestValue) : undefined,
-      providerSku: data.providerSku
+      providerSku: data.providerSku,
+      provider: data.provider
     }
   });
 };
