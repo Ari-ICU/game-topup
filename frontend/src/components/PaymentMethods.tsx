@@ -96,7 +96,7 @@ export default function PaymentMethods() {
             </motion.div>
 
             {/* Text */}
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 overflow-hidden">
               <div className="flex items-center gap-2.5 mb-1.5">
                 <span className="text-base font-black text-white">{pm.khqrName}</span>
                 <span className="text-[9px] font-black bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase tracking-widest">
@@ -109,7 +109,7 @@ export default function PaymentMethods() {
             </div>
 
             {/* Visual decoration — subtle scan lines */}
-            <div className="shrink-0 hidden sm:flex flex-col gap-[3px] opacity-20 select-none">
+            <div className="shrink-0 hidden md:flex flex-col gap-[3px] opacity-20 select-none">
               {Array.from({ length: 6 }).map((_, i) => (
                 <div
                   key={i}
@@ -124,7 +124,7 @@ export default function PaymentMethods() {
 
       {/* ── Supported Banks Grid ───────────────────────────────────────────── */}
       <motion.div
-        className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-7 gap-2.5 max-w-2xl mx-auto"
+        className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-2.5 max-w-2xl mx-auto"
         variants={containerVariants}
         initial="hidden"
         whileInView="visible"

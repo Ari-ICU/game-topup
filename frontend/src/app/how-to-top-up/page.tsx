@@ -117,7 +117,7 @@ export default function HowToTopUpPage() {
     <div className="flex flex-col min-h-screen bg-[#080b11] text-gray-200">
       <Navbar />
 
-      <main className="flex-1 max-w-5xl mx-auto w-full py-16 px-4 sm:px-6 lg:px-8 space-y-16">
+      <main className="flex-1 max-w-5xl mx-auto w-full py-12 sm:py-16 px-4 sm:px-6 lg:px-8 space-y-12 sm:space-y-16">
         {/* Header */}
         <motion.div
           className="text-center space-y-4 max-w-xl mx-auto"
@@ -162,7 +162,7 @@ export default function HowToTopUpPage() {
                   {/* Step number badge (inline above the card) */}
                   <div className="mb-3.5 z-10">
                     <span
-                      className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm"
+                      className="inline-flex items-center justify-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm text-center"
                       style={{
                         color: item.accentColor,
                         borderColor: `${item.accentColor}25`,

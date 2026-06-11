@@ -42,7 +42,7 @@ export default function Hero() {
 
       {/* Hero Content */}
       <div className="relative z-10 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 flex flex-col justify-center min-h-[50vh]">
-        <div className="max-w-2xl text-left space-y-6">
+        <div className="max-w-2xl text-center sm:text-left space-y-6 mx-auto sm:mx-0">
           {/* Badge */}
           <motion.div
             className="inline-block"
@@ -80,7 +80,7 @@ export default function Hero() {
 
           {/* Call-to-action buttons */}
           <motion.div
-            className="flex flex-wrap gap-4 pt-2"
+            className="flex flex-wrap justify-center sm:justify-start gap-4 pt-2"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}
@@ -130,7 +130,7 @@ export default function Hero() {
           </div>
           <motion.button
             type="submit"
-            className="bg-brand-cyan hover:bg-brand-cyan-hover text-white text-xs sm:text-sm font-bold px-6 sm:px-8 py-3 rounded-xl transition duration-200"
+            className="shrink-0 bg-brand-cyan hover:bg-brand-cyan-hover text-white text-xs sm:text-sm font-bold px-5 sm:px-8 py-3 rounded-xl transition duration-200 whitespace-nowrap"
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.97 }}
           >

@@ -20,7 +20,7 @@ export default function Footer() {
 
   return (
     <footer className="bg-[#05070c] border-t border-[#1d2438] pt-16 pb-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-10 mb-12">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-10 mb-12">
         {/* Left Column (Brand info) */}
         <motion.div
           className="md:col-span-5 space-y-6"
@@ -57,7 +57,7 @@ export default function Footer() {
         </motion.div>
 
         {/* Center/Right Columns (Links) */}
-        <div className="md:col-span-7 grid grid-cols-2 gap-8">
+        <div className="md:col-span-7 grid grid-cols-2 gap-6 sm:gap-8">
           {/* Quick Links */}
           <motion.div
             className="space-y-4"
@@ -118,16 +118,16 @@ export default function Footer() {
 
       {/* Bottom Bar */}
       <motion.div
-        className="max-w-7xl mx-auto pt-8 border-t border-[#1d2438]/50 flex flex-col md:flex-row items-center justify-between gap-4"
+        className="max-w-7xl mx-auto pt-8 border-t border-[#1d2438]/50 flex flex-col sm:flex-row items-center justify-between gap-3"
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
         viewport={{ once: false }}
         transition={{ duration: 0.6, delay: 0.3 }}
       >
-        <p className="text-xs text-gray-500 font-medium">
+        <p className="text-xs text-gray-500 font-medium text-center sm:text-left">
           {t.footer.copyright}
         </p>
-        <div className="flex space-x-6 text-xs text-gray-500">
+        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-xs text-gray-500">
           <Link href="/terms" className="hover:text-brand-cyan transition">{t.footer.terms}</Link>
           <Link href="/privacy" className="hover:text-brand-cyan transition">{t.footer.privacy}</Link>
           <Link href="/contact" className="hover:text-brand-cyan transition">{t.footer.contact}</Link>

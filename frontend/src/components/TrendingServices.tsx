@@ -87,7 +87,7 @@ export default function TrendingServices() {
   }, []);
 
   return (
-    <section className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+    <section className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto overflow-hidden">
       {/* Header Row */}
       <motion.div
         className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-12"

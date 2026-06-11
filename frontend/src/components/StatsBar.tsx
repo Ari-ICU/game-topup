@@ -44,14 +44,14 @@ export default function StatsBar() {
             <motion.div
               key={idx}
               variants={itemVariants}
-              className="flex items-center gap-4"
+              className="flex items-center gap-3 min-w-0"
             >
               <div className={`w-10 h-10 rounded-xl bg-white/4 border border-white/8 flex items-center justify-center shrink-0`}>
                 <Icon className={`w-5 h-5 ${stat.color}`} strokeWidth={1.8} />
               </div>
-              <div>
+              <div className="min-w-0">
                 <div className={`text-xl font-black ${stat.color}`}>{stat.value}</div>
-                <div className="text-[11px] text-gray-500 font-semibold">{stat.label}</div>
+                <div className="text-[11px] text-gray-500 font-semibold leading-tight break-words">{stat.label}</div>
               </div>
             </motion.div>
           );

@@ -147,9 +147,9 @@ export default function Navbar() {
             transition={{ duration: 0.45, delay: 0.2, ease: "easeOut" }}
           >
             {/* Loyalty Badge */}
-            <Link href="/loyalty" className={`flex items-center space-x-1.5 px-3 py-1.5 text-xs font-bold rounded-full border ${loyalty.color}`}>
-              <span>{t.nav.tier}: {t.loyalty[loyalty.nameKey]}</span>
-              <span className="text-[10px] opacity-60">({xp} XP)</span>
+            <Link href="/loyalty" className={`flex items-center space-x-1.5 px-3 py-1.5 text-xs font-bold rounded-full border ${loyalty.color} max-w-[200px] overflow-hidden`}>
+              <span className="truncate">{t.nav.tier}: {t.loyalty[loyalty.nameKey]}</span>
+              <span className="text-[10px] opacity-60 shrink-0">({xp} XP)</span>
             </Link>
 
             {/* Language Switcher */}
@@ -310,9 +310,9 @@ export default function Navbar() {
               <Link
                 href="/loyalty"
                 onClick={() => setIsOpen(false)}
-                className={`col-span-2 flex items-center justify-center space-x-1.5 py-2.5 rounded-lg border font-bold text-xs ${loyalty.color}`}
+                className={`col-span-2 flex items-center justify-center space-x-1.5 py-2.5 rounded-lg border font-bold text-xs ${loyalty.color} overflow-hidden`}
               >
-                <span>{t.nav.tier}: {t.loyalty[loyalty.nameKey]} ({xp} XP)</span>
+                <span className="truncate">{t.nav.tier}: {t.loyalty[loyalty.nameKey]} ({xp} XP)</span>
               </Link>
             </motion.div>
           </motion.div>

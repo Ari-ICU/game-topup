@@ -450,13 +450,13 @@ export default function GameTopupPage() {
     <div className="flex flex-col min-h-screen bg-[#080b11] text-gray-200">
       <Navbar />
 
-      <main className="flex-1 max-w-7xl mx-auto w-full py-12 px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <main className="flex-1 max-w-7xl mx-auto w-full py-8 sm:py-12 px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
 
         {/* Left Column - Game details */}
         <motion.div
           className="lg:col-span-4 space-y-6"
-          initial={{ opacity: 0, x: -30 }}
-          animate={{ opacity: 1, x: 0 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.55, ease: "easeOut" }}
         >
           <div className="bg-[#111625] border border-[#1d2438] rounded-2xl overflow-hidden shadow-lg">
@@ -768,7 +768,7 @@ export default function GameTopupPage() {
                     </span>
                     <h2 className="text-base font-bold text-white">{t.checkout.promoCodeLabel}</h2>
                   </div>
-                  <div className="flex gap-2 max-w-sm">
+                  <div className="flex gap-2">
                     <input
                       type="text"
                       placeholder={t.checkout.promoCodePlaceholder}
@@ -780,13 +780,13 @@ export default function GameTopupPage() {
                         setPromoDiscountAmount(0);
                       }}
                       disabled={!selectedPkg || promoCodeApplied || isValidatingPromo}
-                      className="block w-full px-4 py-4 bg-[#080b11]/80 border border-[#1d2438] rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-brand-cyan transition-all text-xs font-semibold"
+                      className="block w-full px-4 py-3 bg-[#080b11]/80 border border-[#1d2438] rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-brand-cyan transition-all text-xs font-semibold"
                     />
                     <button
                       type="button"
                       onClick={handleApplyPromo}
                       disabled={!selectedPkg || !promoCodeInput.trim() || promoCodeApplied || isValidatingPromo}
-                      className="py-4 w-20 sm:w-[200px] bg-brand-cyan text-black font-bold text-xs rounded-xl hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-40"
+                      className="shrink-0 py-3 px-4 sm:w-[140px] bg-brand-cyan text-black font-bold text-xs rounded-xl hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-40 whitespace-nowrap"
                     >
                       {isValidatingPromo ? (
                         <span className="w-3 h-3 border-1 border-black border-t-transparent rounded-full animate-spin block"></span>
