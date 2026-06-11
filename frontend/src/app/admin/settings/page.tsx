@@ -296,7 +296,7 @@ export default function AdminSettings() {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6 w-full">
       {/* Page Title */}
       <div>
         <h1 className="text-2xl font-extrabold text-white tracking-tight flex items-center gap-2">
@@ -351,7 +351,7 @@ export default function AdminSettings() {
 
       {/* Tab Contents */}
       {activeTab === "khqr" && (
-        <div className="space-y-6 max-w-2xl">
+        <div className="space-y-6 w-full">
           {/* Warning/Alert box */}
           <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl flex gap-3 text-sm text-yellow-400">
             <AlertTriangle className="w-5 h-5 shrink-0" />
@@ -475,7 +475,7 @@ export default function AdminSettings() {
       )}
 
       {activeTab === "providers" && (
-        <div className="space-y-6 max-w-2xl">
+        <div className="space-y-6 w-full">
           {/* Warning/Alert box */}
           <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl flex gap-3 text-sm text-yellow-400">
             <AlertTriangle className="w-5 h-5 shrink-0" />
