@@ -132,3 +132,15 @@ export const getRecentCompletedTx = async (req: Request, res: Response, next: Ne
     next(error);
   }
 };
+
+/**
+ * Handle fetching active promos list
+ */
+export const getActivePromos = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+  try {
+    const promos = await transactionService.getActivePromos();
+    res.json(promos);
+  } catch (error) {
+    next(error);
+  }
+};

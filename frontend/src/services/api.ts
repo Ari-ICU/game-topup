@@ -89,5 +89,18 @@ export const apiService = {
     }
 
     return data;
+  },
+
+  /**
+   * Fetch all active promo codes
+   */
+  async getPromos(): Promise<any[]> {
+    const res = await fetch("/api/transactions/promos");
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.error || "Failed to fetch promotions");
+    }
+    return await res.json();
   }
 };
+

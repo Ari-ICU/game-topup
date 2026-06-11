@@ -24,137 +24,162 @@ export default function KhqrPaymentCard({
   packageName,
   countdown,
 }: KhqrPaymentCardProps) {
-  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=4&data=${encodeURIComponent(qrCode)}`;
+  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=6&data=${encodeURIComponent(qrCode)}`;
   const { t } = useLanguage();
   const [isMobile, setIsMobile] = React.useState(false);
 
   React.useEffect(() => {
     const ua = navigator.userAgent.toLowerCase();
     const mobileKeywords = ["android", "webos", "iphone", "ipad", "ipod", "blackberry", "iemobile", "opera mini"];
-    const isMobileUA = mobileKeywords.some(keyword => ua.includes(keyword)) || window.innerWidth < 768;
+    const isMobileUA = mobileKeywords.some((k) => ua.includes(k)) || window.innerWidth < 768;
     setIsMobile(isMobileUA);
   }, []);
 
+  // Countdown derived state
+  const isUrgent = countdown !== undefined && countdown < 60;
+  const mins = countdown !== undefined ? Math.floor(countdown / 60).toString().padStart(2, "0") : "00";
+  const secs = countdown !== undefined ? (countdown % 60).toString().padStart(2, "0") : "00";
+
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.92 }}
-      animate={{ opacity: 1, scale: 1 }}
+      initial={{ opacity: 0, y: 16, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
-      className="relative w-full max-w-xs mx-auto"
+      className="relative w-full max-w-[340px] mx-auto"
     >
-      {/* Main Card Container */}
-      <div className="relative overflow-hidden bg-gradient-to-b from-[#140f10] to-[#100a0b] border border-[#2a1a1a] rounded-3xl shadow-[0_30px_60px_rgba(226,26,34,0.25)] hover:shadow-[0_40px_80px_rgba(226,26,34,0.3)] transition-shadow duration-300">
-        
-        {/* Top accent bar */}
-        <div className="h-1.5 w-full bg-gradient-to-r from-[#e21a22] via-[#f5c842] to-[#e21a22] opacity-90" />
+      {/* ── Card Shell ──────────────────────────────────────────────────────── */}
+      <div className="relative rounded-2xl overflow-hidden bg-[#0d1117] border border-white/[0.07] shadow-2xl shadow-black/60">
 
-        {/* Header: KHQR pill + Live dot */}
-        <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-white/5">
-          <div className="flex items-center gap-2">
-            <div className="relative bg-gradient-to-r from-[#e21a22] to-[#e5a93b] px-3 py-1 rounded-lg overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent to-white/10"/>
-              <span className="relative text-[10px] font-black text-white tracking-widest">KHQR</span>
+        {/* Top gradient accent */}
+        <div className="h-[3px] w-full bg-gradient-to-r from-[#e21a22] via-[#f0b429] to-[#e21a22]" />
+
+        {/* ── Header ──────────────────────────────────────────────────────── */}
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/[0.05]">
+          {/* KHQR badge */}
+          <div className="flex items-center gap-2.5">
+            <div className="px-2.5 py-1 bg-gradient-to-r from-[#e21a22] to-[#d4880f] rounded-md">
+              <span className="text-[10px] font-black text-white tracking-[0.2em]">KHQR</span>
             </div>
-            <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
-              Bakong
-            </span>
+            <span className="text-[11px] font-semibold text-gray-500 tracking-wider">BAKONG</span>
           </div>
 
-          {/* Live pulse indicator */}
+          {/* Live indicator */}
           <div className="flex items-center gap-1.5">
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
             </span>
-            <span className="text-[9px] font-black text-green-400 uppercase tracking-wider">Live</span>
+            <span className="text-[10px] font-bold text-emerald-400 tracking-wider uppercase">Live</span>
           </div>
         </div>
 
-        {/* Amount Section */}
-        <div className="px-5 pt-5 pb-3 text-center">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">
+        {/* ── Amount ──────────────────────────────────────────────────────── */}
+        <div className="px-5 pt-5 pb-4 text-center">
+          <p className="text-[10px] font-bold text-gray-600 uppercase tracking-[0.18em] mb-2">
             Amount Due
           </p>
-          <p className="text-4xl font-black text-white tracking-tight bg-clip-text bg-gradient-to-br from-white to-gray-300 text-transparent">
+          <p className="text-[2.6rem] font-black text-white tracking-tight leading-none">
             {amount}
           </p>
           {packageName && (
-            <motion.span 
-              initial={{ opacity: 0, y: 5 }}
+            <motion.div
+              initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="inline-block mt-2 px-3 py-1 text-[10px] font-bold text-cyan-200 bg-cyan-900/30 border border-cyan-800 rounded-full uppercase tracking-wider shadow-md"
+              transition={{ delay: 0.25 }}
+              className="mt-3"
             >
-              {packageName}
-            </motion.span>
+              <span className="inline-block px-3 py-1 text-[10px] font-bold text-sky-300 bg-sky-500/10 border border-sky-500/20 rounded-full uppercase tracking-wider">
+                {packageName}
+              </span>
+            </motion.div>
           )}
         </div>
 
-        {/* QR Code Section */}
-        <div className="px-6 py-4 flex justify-center">
-          <motion.div 
-            initial={{ scale: 0.98 }}
-            animate={{ scale: 1 }}
-            transition={{ 
-              repeat: Infinity,
-              repeatType: "reverse",
-              duration: 3
-            }}
-            className="relative"
-          >
-            {/* Glow ring */}
-            <div className="absolute -inset-2 rounded-2xl bg-gradient-to-r from-[#e21a22] to-[#e5a93b] opacity-20 blur-md group-hover:opacity-30 transition-opacity duration-300" />
-            <div className="relative bg-white p-3 rounded-2xl shadow-xl border border-white/20">
-              <div className="absolute inset-0 rounded-xl bg-[url('/images/noise.png')] opacity-10"/>
+        {/* ── QR Code ─────────────────────────────────────────────────────── */}
+        <div className="px-6 pb-4 flex justify-center">
+          <div className="relative">
+            {/* Soft glow halo */}
+            <div className="absolute -inset-3 rounded-2xl bg-gradient-to-br from-[#e21a22]/20 to-[#f0b429]/10 blur-xl opacity-60" />
+
+            {/* White QR frame */}
+            <div className="relative bg-white p-3.5 rounded-xl shadow-lg">
+              {/* Corner decorators */}
+              {[
+                "top-0 left-0 rounded-tl-lg border-t-2 border-l-2",
+                "top-0 right-0 rounded-tr-lg border-t-2 border-r-2",
+                "bottom-0 left-0 rounded-bl-lg border-b-2 border-l-2",
+                "bottom-0 right-0 rounded-br-lg border-b-2 border-r-2",
+              ].map((cls, i) => (
+                <div
+                  key={i}
+                  className={`absolute w-5 h-5 border-[#e21a22] ${cls}`}
+                  style={{ margin: -1 }}
+                />
+              ))}
+
               <Image
                 src={qrSrc}
                 alt="Bakong KHQR Code"
                 width={200}
                 height={200}
-                className="object-contain rounded-lg"
+                className="object-contain rounded-lg block"
                 unoptimized
                 priority
               />
             </div>
-          </motion.div>
+          </div>
         </div>
 
-        {/* Expiration Countdown Badge */}
+        {/* ── Countdown ───────────────────────────────────────────────────── */}
         {countdown !== undefined && (
-          <div className="flex justify-center pb-2.5">
-            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold border transition-all duration-300 ${
-              countdown < 60
-                ? "bg-red-500/10 border-red-500/35 text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.1)]"
-                : "bg-white/[0.03] border-white/[0.08] text-gray-400"
-            }`}>
-              <svg className={`w-3.5 h-3.5 ${countdown < 60 ? "animate-pulse text-red-400" : "text-gray-500"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <div className="flex justify-center pb-3">
+            <div
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold border transition-all duration-300 ${
+                isUrgent
+                  ? "bg-red-500/10 border-red-500/25 text-red-400"
+                  : "bg-white/[0.03] border-white/[0.06] text-gray-500"
+              }`}
+            >
+              {/* Clock icon */}
+              <svg
+                className={`w-3.5 h-3.5 shrink-0 ${isUrgent ? "animate-pulse" : ""}`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2.5}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
-              <span>Expires in: </span>
-              <span className="font-mono font-black tracking-wider text-xs">
-                {Math.floor(countdown / 60).toString().padStart(2, '0')}:
-                {(countdown % 60).toString().padStart(2, '0')}
+              <span className="text-gray-500 text-[11px]">Expires in:</span>
+              <span className={`font-mono font-black tracking-widest ${isUrgent ? "text-red-400" : "text-gray-300"}`}>
+                {mins}:{secs}
               </span>
             </div>
           </div>
         )}
 
-        {/* Mobile Banking Deep Links */}
+        {/* ── Mobile deep links ────────────────────────────────────────────── */}
         {isMobile && (
-          <div className="px-5 pb-4 space-y-2 text-center border-b border-white/5 pt-1">
-            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">{t.checkout.deepLinkLabel}</p>
+          <div className="mx-5 mb-4 p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.06] space-y-2.5">
+            <p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest text-center">
+              {t.checkout.deepLinkLabel}
+            </p>
             <div className="grid grid-cols-2 gap-2">
               <motion.a
                 href={`abapay://pay?qr=${encodeURIComponent(qrCode)}`}
-                className="flex items-center justify-center gap-1 bg-gradient-to-r from-blue-600 to-[#005a9c] hover:brightness-110 text-white font-bold text-[9px] py-2 px-1 rounded-xl shadow-md cursor-pointer transition-all"
                 whileTap={{ scale: 0.96 }}
+                className="flex items-center justify-center py-2 px-2 bg-[#005a9c] hover:brightness-110 text-white font-bold text-[10px] rounded-lg transition-all cursor-pointer"
               >
                 {t.checkout.openAbaPay}
               </motion.a>
               <motion.a
                 href={`bakong://pay?qr=${encodeURIComponent(qrCode)}`}
-                className="flex items-center justify-center gap-1 bg-gradient-to-r from-red-600 to-[#e21a22] hover:brightness-110 text-white font-bold text-[9px] py-2 px-1 rounded-xl shadow-md cursor-pointer transition-all"
                 whileTap={{ scale: 0.96 }}
+                className="flex items-center justify-center py-2 px-2 bg-[#c0171e] hover:brightness-110 text-white font-bold text-[10px] rounded-lg transition-all cursor-pointer"
               >
                 {t.checkout.openBakong}
               </motion.a>
@@ -162,33 +187,31 @@ export default function KhqrPaymentCard({
           </div>
         )}
 
-        {/* Instructions + Bank row */}
-        <div className="px-5 pb-6 text-center space-y-3 pt-2">
-          <p className="text-xs text-gray-400 font-medium leading-relaxed">
+        {/* ── Instructions ─────────────────────────────────────────────────── */}
+        <div className="px-5 pb-5 text-center space-y-3 border-t border-white/[0.04] pt-3.5">
+          <p className="text-[11px] text-gray-500 leading-relaxed">
             Open your banking app and{" "}
-            <span className="text-white/90 font-semibold">scan this QR code</span> <br/> 
+            <span className="text-gray-300 font-semibold">scan this QR code</span>
+            <br />
             to complete payment
           </p>
 
-          <div className="flex items-center justify-center gap-2 flex-wrap">
+          {/* Bank pills */}
+          <div className="flex items-center justify-center gap-1.5 flex-wrap">
             {SUPPORTED_BANKS.map((bank) => (
-              <motion.div
+              <motion.span
                 key={bank}
                 whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="text-xs font-bold text-gray-400 bg-white/[0.03] border border-white/[0.1] px-2.5 py-1 rounded-lg shadow-sm"
+                className="text-[10px] font-semibold text-gray-500 bg-white/[0.04] border border-white/[0.07] px-2.5 py-0.5 rounded-md cursor-default"
               >
                 {bank}
-              </motion.div>
+              </motion.span>
             ))}
           </div>
         </div>
 
-        {/* Bottom accent bar */}
-        <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-[#e21a22]/40 to-transparent" />
-        
-        {/* Subtle glow effect */}
-        <div className="absolute inset-0 pointer-events-none rounded-3xl border border-transparent shadow-[inset_0_0_20px_rgba(226,26,34,0.12)]"/>
+        {/* Bottom gradient accent */}
+        <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-[#e21a22]/30 to-transparent" />
       </div>
     </motion.div>
   );

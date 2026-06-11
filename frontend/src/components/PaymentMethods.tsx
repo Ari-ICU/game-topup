@@ -4,8 +4,9 @@ import React from "react";
 import type { Variants } from "framer-motion";
 import { motion } from "framer-motion";
 import { useLanguage } from "@/context/LanguageContext";
+import { ShieldCheck } from "lucide-react";
 
-// ── KHQR inline SVG ─────────────────────────────────────────────────────────
+// ── KHQR Logo SVG ─────────────────────────────────────────────────────────────
 const KhqrLogo = ({ className = "w-8 h-8" }: { className?: string }) => (
   <svg viewBox="0 0 100 100" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
     <circle cx="50" cy="50" r="48" fill="#e21a22" />
@@ -18,87 +19,112 @@ const KhqrLogo = ({ className = "w-8 h-8" }: { className?: string }) => (
   </svg>
 );
 
-// ── Bank data ────────────────────────────────────────────────────────────────
+// ── Bank data ─────────────────────────────────────────────────────────────────
 const BANKS = [
-  { name: "ABA Bank",              abbr: "ABA",   color: "#e5a93b", bg: "rgba(229,169,59,0.10)",  border: "rgba(229,169,59,0.22)"  },
-  { name: "ACLEDA Bank",           abbr: "ACL",   color: "#00b2ff", bg: "rgba(0,178,255,0.10)",   border: "rgba(0,178,255,0.22)"   },
-  { name: "Wing Bank",             abbr: "WING",  color: "#e21a22", bg: "rgba(226,26,34,0.10)",   border: "rgba(226,26,34,0.22)"   },
-  { name: "Cambodian Public Bank", abbr: "CPB",   color: "#9c59d1", bg: "rgba(156,89,209,0.10)",  border: "rgba(156,89,209,0.22)"  },
-  { name: "Canadia Bank",          abbr: "CAN",   color: "#22c55e", bg: "rgba(34,197,94,0.10)",   border: "rgba(34,197,94,0.22)"   },
-  { name: "Maybank Cambodia",      abbr: "MAY",   color: "#facc15", bg: "rgba(250,204,21,0.10)",  border: "rgba(250,204,21,0.22)"  },
-  { name: "AMK MFI",               abbr: "AMK",   color: "#f97316", bg: "rgba(249,115,22,0.10)",  border: "rgba(249,115,22,0.22)"  },
+  { name: "ABA Bank",              abbr: "ABA",  color: "#e5a93b", bg: "rgba(229,169,59,0.08)",  border: "rgba(229,169,59,0.18)"  },
+  { name: "ACLEDA",                abbr: "ACL",  color: "#00b2ff", bg: "rgba(0,178,255,0.08)",   border: "rgba(0,178,255,0.18)"   },
+  { name: "Wing Bank",             abbr: "WING", color: "#e21a22", bg: "rgba(226,26,34,0.08)",   border: "rgba(226,26,34,0.18)"   },
+  { name: "Public Bank",           abbr: "CPB",  color: "#a855f7", bg: "rgba(168,85,247,0.08)",  border: "rgba(168,85,247,0.18)"  },
+  { name: "Canadia Bank",          abbr: "CAN",  color: "#22c55e", bg: "rgba(34,197,94,0.08)",   border: "rgba(34,197,94,0.18)"   },
+  { name: "Maybank",               abbr: "MAY",  color: "#facc15", bg: "rgba(250,204,21,0.08)",  border: "rgba(250,204,21,0.18)"  },
+  { name: "AMK MFI",               abbr: "AMK",  color: "#f97316", bg: "rgba(249,115,22,0.08)",  border: "rgba(249,115,22,0.18)"  },
 ];
 
-// ── Animation helpers ────────────────────────────────────────────────────────
-const containerVariants = {
+// ── Animations ────────────────────────────────────────────────────────────────
+const containerVariants: Variants = {
   hidden: {},
-  visible: { transition: { staggerChildren: 0.07 } },
-};
-const cardVariants: Variants = {
-  hidden: { opacity: 0, y: 18 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" as const } },
+  visible: { transition: { staggerChildren: 0.06 } },
 };
 
-// ── Component ────────────────────────────────────────────────────────────────
+const cardVariants: Variants = {
+  hidden: { opacity: 0, y: 14 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" } },
+};
+
+// ── Component ─────────────────────────────────────────────────────────────────
 export default function PaymentMethods() {
   const { t } = useLanguage();
   const pm = t.paymentMethods;
 
   return (
     <section className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-      {/* Header */}
+
+      {/* ── Section Header ─────────────────────────────────────────────────── */}
       <motion.div
-        className="text-center mb-14"
-        initial={{ opacity: 0, y: 24 }}
+        className="text-center mb-12"
+        initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, amount: 0.4 }}
-        transition={{ duration: 0.55, ease: "easeOut" }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
       >
+        {/* Eyebrow */}
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#e21a22]/10 border border-[#e21a22]/20 mb-4">
+          <ShieldCheck className="w-3.5 h-3.5 text-[#e21a22]" />
+          <span className="text-[11px] font-bold text-[#e21a22] uppercase tracking-widest">
+            Trusted Payments
+          </span>
+        </div>
+
         <h2 className="text-3xl font-black text-white tracking-tight">
           {pm.title}
         </h2>
-        <p className="text-sm text-gray-400 mt-2 font-medium max-w-md mx-auto leading-relaxed">
+        <p className="text-sm text-gray-500 mt-2.5 max-w-sm mx-auto leading-relaxed">
           {pm.subtitle}
         </p>
       </motion.div>
 
-      {/* KHQR hero card */}
+      {/* ── KHQR Hero Card ─────────────────────────────────────────────────── */}
       <motion.div
-        className="max-w-lg mx-auto mb-10"
-        initial={{ opacity: 0, y: 20, scale: 0.96 }}
+        className="max-w-xl mx-auto mb-8"
+        initial={{ opacity: 0, y: 16, scale: 0.97 }}
         whileInView={{ opacity: 1, y: 0, scale: 1 }}
         viewport={{ once: true, amount: 0.4 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
+        transition={{ duration: 0.45, ease: "easeOut" }}
       >
-        <div className="relative overflow-hidden bg-gradient-to-br from-[#1a0e0e] via-[#120f14] to-[#0a0f1b] border border-[#e21a22]/20 rounded-2xl p-6 flex items-center gap-5 shadow-[0_10px_40px_rgba(226,26,34,0.12)]">
-          {/* Top accent bar */}
-          <div className="absolute top-0 inset-x-0 h-0.5 bg-gradient-to-r from-[#e21a22] via-[#f5c842] to-[#e21a22]" />
+        <div className="relative overflow-hidden rounded-2xl border border-[#e21a22]/15 bg-[#0d1117]">
+          {/* Red top stripe */}
+          <div className="h-[2px] w-full bg-gradient-to-r from-[#e21a22] via-[#f0b429] to-[#e21a22]" />
 
-          <motion.div
-            whileHover={{ rotate: 8, scale: 1.1 }}
-            transition={{ type: "spring", stiffness: 250 }}
-            className="shrink-0"
-          >
-            <KhqrLogo className="w-14 h-14" />
-          </motion.div>
+          <div className="flex items-center gap-5 p-6">
+            {/* Logo */}
+            <motion.div
+              whileHover={{ rotate: 6, scale: 1.08 }}
+              transition={{ type: "spring", stiffness: 260, damping: 18 }}
+              className="shrink-0"
+            >
+              <KhqrLogo className="w-14 h-14 drop-shadow-lg" />
+            </motion.div>
 
-          <div className="flex-1 text-left">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-base font-black text-white">{pm.khqrName}</span>
-              <span className="text-[9px] font-black bg-green-500/15 text-green-400 border border-green-500/25 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                {pm.khqrBadge}
-              </span>
+            {/* Text */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2.5 mb-1.5">
+                <span className="text-base font-black text-white">{pm.khqrName}</span>
+                <span className="text-[9px] font-black bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase tracking-widest">
+                  {pm.khqrBadge}
+                </span>
+              </div>
+              <p className="text-[12px] text-gray-500 leading-relaxed">
+                {pm.khqrDesc}
+              </p>
             </div>
-            <p className="text-xs text-gray-400 font-medium leading-relaxed">
-              {pm.khqrDesc}
-            </p>
+
+            {/* Visual decoration — subtle scan lines */}
+            <div className="shrink-0 hidden sm:flex flex-col gap-[3px] opacity-20 select-none">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="h-[2px] bg-[#e21a22] rounded-full"
+                  style={{ width: `${20 + (i % 3) * 8}px` }}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </motion.div>
 
-      {/* Supported banks grid */}
+      {/* ── Supported Banks Grid ───────────────────────────────────────────── */}
       <motion.div
-        className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-7 gap-3 max-w-3xl mx-auto"
+        className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-7 gap-2.5 max-w-2xl mx-auto"
         variants={containerVariants}
         initial="hidden"
         whileInView="visible"
@@ -108,33 +134,38 @@ export default function PaymentMethods() {
           <motion.div
             key={idx}
             variants={cardVariants}
-            whileHover={{ y: -5, scale: 1.06, transition: { duration: 0.18 } }}
-            className="flex flex-col items-center justify-center gap-1.5 py-4 px-2 rounded-xl border transition-all duration-200 cursor-default"
+            whileHover={{ y: -4, scale: 1.05, transition: { duration: 0.15 } }}
+            className="flex flex-col items-center justify-center gap-1.5 py-3.5 px-1.5 rounded-xl border cursor-default transition-all"
             style={{ background: bank.bg, borderColor: bank.border }}
           >
             <span
-              className="text-xs font-black tracking-wider leading-tight text-center"
+              className="text-[11px] font-black tracking-wider"
               style={{ color: bank.color }}
             >
               {bank.abbr}
             </span>
-            <span className="text-[8.5px] text-gray-500 font-semibold text-center leading-tight">
+            <span className="text-[8px] text-gray-600 font-semibold text-center leading-snug">
               {bank.name}
             </span>
           </motion.div>
         ))}
       </motion.div>
 
-      {/* NBC regulatory note */}
-      <motion.p
-        className="text-center text-[11px] text-gray-600 font-medium mt-8"
+      {/* ── NBC Note ───────────────────────────────────────────────────────── */}
+      <motion.div
+        className="flex items-center justify-center gap-2 mt-8"
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
-        viewport={{ once: true, amount: 0.5 }}
-        transition={{ delay: 0.4, duration: 0.5 }}
+        viewport={{ once: true }}
+        transition={{ delay: 0.35, duration: 0.5 }}
       >
-        {pm.nbcNote}
-      </motion.p>
+        <div className="h-px w-12 bg-white/[0.06]" />
+        <p className="text-[11px] text-gray-600 font-medium text-center">
+          {pm.nbcNote}
+        </p>
+        <div className="h-px w-12 bg-white/[0.06]" />
+      </motion.div>
+
     </section>
   );
 }

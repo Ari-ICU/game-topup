@@ -18,6 +18,12 @@ router.post(
   transactionController.validatePromo
 );
 
+// Get active promos list
+router.get(
+  "/promos",
+  transactionController.getActivePromos
+);
+
 // Get recent completed transactions
 router.get(
   "/recent",

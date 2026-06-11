@@ -674,3 +674,18 @@ export const getRecentCompletedTransactions = async (limit: number = 10) => {
     };
   });
 };
+
+/**
+ * Get all active promo codes
+ */
+export const getActivePromos = async () => {
+  return await prisma.promoCode.findMany({
+    where: {
+      isActive: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+};
+
