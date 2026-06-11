@@ -42,14 +42,17 @@ app.use(cors({
 
 // ─── Body parsing ────────────────────────────────────────────────────────────
 // Tight global limit (10kb). Admin upload route uses its own 10mb limit.
-app.use(
+app.use((req: any, res: any, next: any) => {
+  if (req.path === "/api/admin/upload" || req.originalUrl === "/api/admin/upload" || req.originalUrl.endsWith("/admin/upload")) {
+    return next();
+  }
   express.json({
     limit: "10kb",
     verify: (req: any, res, buf) => {
       req.rawBody = buf.toString();
     },
-  })
-);
+  })(req, res, next);
+});
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // Custom request logger streaming via Winston

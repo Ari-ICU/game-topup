@@ -398,6 +398,14 @@ function verifyMagicBytes(buffer: Buffer, ext: string): boolean {
     return text.includes("<svg") || text.startsWith("<?xml");
   }
 
+  // AVIF: ftypavif or ftypavis at offset 4
+  if (ext === ".avif") {
+    if (buffer.length < 12) return false;
+    const isFtyp = buffer[4] === 0x66 && buffer[5] === 0x74 && buffer[6] === 0x79 && buffer[7] === 0x70;
+    const isAvif = buffer[8] === 0x61 && buffer[9] === 0x76 && buffer[10] === 0x69 && (buffer[11] === 0x66 || buffer[11] === 0x73);
+    return isFtyp && isAvif;
+  }
+
   return false;
 }
 
@@ -406,10 +414,15 @@ function verifyMagicBytes(buffer: Buffer, ext: string): boolean {
  */
 export const saveUploadedFile = async (name: string, base64Data: string) => {
   // Security: only allow safe image extensions
-  const ALLOWED_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"];
+  const ALLOWED_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".avif"];
   const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
 
-  const buffer = Buffer.from(base64Data, "base64");
+  // If the base64 string contains a data URI prefix, strip it to prevent binary corruption
+  const cleanBase64 = base64Data.includes(";base64,")
+    ? base64Data.split(";base64,")[1]
+    : base64Data;
+
+  const buffer = Buffer.from(cleanBase64, "base64");
 
   if (buffer.length > MAX_SIZE_BYTES) {
     throw new Error("File exceeds the maximum allowed size of 5MB.");
