@@ -65,6 +65,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    command: sh -c "npx prisma db push && npm run seed && node dist/server.js"
     restart: always
 
   # Next.js web application frontend portal
