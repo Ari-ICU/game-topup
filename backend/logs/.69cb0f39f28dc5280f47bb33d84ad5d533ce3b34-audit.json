@@ -9,6 +9,11 @@
             "date": 1781158597181,
             "name": "/Users/thoeurnratha/Desktop/top-up/backend/logs/combined-2026-06-11.log",
             "hash": "8b3596b92743ef908a60340d6f0d98a467af7db67eefcb0f4af41a750111553a"
+        },
+        {
+            "date": 1781244738235,
+            "name": "/Users/thoeurnratha/Desktop/top-up/backend/logs/combined-2026-06-12.log",
+            "hash": "f29fcf82315b5a4424649c4d2ee25876532b625ea081bb9ff037a6384e4d1b78"
         }
     ],
     "hashType": "sha256"

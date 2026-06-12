@@ -24,9 +24,15 @@ for (const key of REQUIRED_ENV) {
     process.exit(1);
   }
 }
-if (process.env.NODE_ENV === "production" && !process.env.FRONTEND_URL) {
-  logger.error("[FATAL] FRONTEND_URL is not set in production!");
-  process.exit(1);
+if (process.env.NODE_ENV === "production") {
+  if (!process.env.FRONTEND_URL) {
+    logger.error("[FATAL] FRONTEND_URL is not set in production!");
+    process.exit(1);
+  }
+  if (!process.env.BAKONG_WEBHOOK_SECRET) {
+    logger.error("[FATAL] BAKONG_WEBHOOK_SECRET is not set in production!");
+    process.exit(1);
+  }
 }
 
 // ─── Security headers (Helmet) ────────────────────────────────────────────────

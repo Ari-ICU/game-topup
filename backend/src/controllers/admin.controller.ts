@@ -307,7 +307,10 @@ export const uploadFile = async (req: Request, res: Response, next: NextFunction
     if (!name || !data) {
       return res.status(400).json({ error: "Missing name or base64 data" });
     }
-    const result = await adminService.saveUploadedFile(name, data);
+    const host = req.get("host");
+    const protocol = req.protocol;
+    const backendUrl = `${protocol}://${host}`;
+    const result = await adminService.saveUploadedFile(name, data, backendUrl);
     res.json(result);
   } catch (error) {
     next(error);

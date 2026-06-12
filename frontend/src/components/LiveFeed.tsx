@@ -48,8 +48,7 @@ export default function LiveFeed() {
 
     const fetchRecentOrders = async () => {
       try {
-        const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001";
-        const res = await fetch(`${backendUrl}/api/transactions/recent`);
+        const res = await fetch("/api/transactions/recent");
         if (!res.ok) throw new Error("Failed to fetch");
         const data = await res.json();
 

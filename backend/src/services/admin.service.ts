@@ -412,7 +412,7 @@ function verifyMagicBytes(buffer: Buffer, ext: string): boolean {
 /**
  * Decodes base64 string and writes file to server disks
  */
-export const saveUploadedFile = async (name: string, base64Data: string) => {
+export const saveUploadedFile = async (name: string, base64Data: string, backendUrl?: string) => {
   // Security: only allow safe image extensions
   const ALLOWED_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".avif"];
   const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
@@ -467,7 +467,8 @@ export const saveUploadedFile = async (name: string, base64Data: string) => {
     const filePath = path.join(backendPublicDir, fileName);
     fs.writeFileSync(filePath, buffer);
     if (!savedPathUrl) {
-      savedPathUrl = `http://localhost:${process.env.PORT || 5001}/uploads/${fileName}`;
+      const baseUrl = backendUrl || `http://localhost:${process.env.PORT || 5001}`;
+      savedPathUrl = `${baseUrl}/uploads/${fileName}`;
     }
   } catch (err) {
     logger.error("[Upload] Backend write failed", err);
