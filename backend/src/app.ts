@@ -4,6 +4,7 @@ import helmet from "helmet";
 import dotenv from "dotenv";
 import morgan from "morgan";
 import path from "path";
+import { setupSwagger } from "./config/swagger";
 import gameRoutes from "./routes/game.routes";
 import transactionRoutes from "./routes/transaction.routes";
 import webhookRoutes from "./routes/webhook.routes";
@@ -82,6 +83,9 @@ app.use(
     }
   )
 );
+
+// Mount OpenAPI Swagger UI
+setupSwagger(app);
 
 // API Routes
 app.use("/api/games", gameRoutes);

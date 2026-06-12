@@ -1,5 +1,5 @@
-/// <reference types="node" />
-import { PrismaClient, Provider } from "@prisma/client";
+import { PrismaClient, Provider, Role } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
@@ -10,15 +10,43 @@ async function main() {
   await prisma.transaction.deleteMany({});
   await prisma.package.deleteMany({});
   await prisma.game.deleteMany({});
+  await prisma.refreshToken.deleteMany({});
   await prisma.user.deleteMany({});
 
   console.log("Deleted existing database content.");
 
-  // Create mock user
+  // Create hashed passwords
+  const adminPasswordHash = await bcrypt.hash("Admin@123", 10);
+  const staffPasswordHash = await bcrypt.hash("Staff@123", 10);
+
+  // Create mock Admin
+  const adminUser = await prisma.user.create({
+    data: {
+      email: "admin@topuppay.com",
+      name: "System Admin",
+      passwordHash: adminPasswordHash,
+      role: Role.ADMIN,
+    },
+  });
+  console.log(`Created admin user: ${adminUser.name} (${adminUser.id})`);
+
+  // Create mock Staff
+  const staffUser = await prisma.user.create({
+    data: {
+      email: "staff@topuppay.com",
+      name: "Support Staff",
+      passwordHash: staffPasswordHash,
+      role: Role.STAFF,
+    },
+  });
+  console.log(`Created staff user: ${staffUser.name} (${staffUser.id})`);
+
+  // Create mock user (regular user for transactions)
   const mockUser = await prisma.user.create({
     data: {
       email: "gamer@example.com",
       name: "Pro Gamer",
+      role: Role.USER,
     },
   });
   console.log(`Created mock user: ${mockUser.name} (${mockUser.id})`);

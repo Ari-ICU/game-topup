@@ -3,9 +3,35 @@ import * as adminService from "../services/admin.service";
 import { retryFulfillOrder } from "../services/transaction.service";
 import jwt from "jsonwebtoken";
 import { z } from "zod";
+import * as authService from "../services/auth.service";
+import { Role } from "@prisma/client";
+import { prisma } from "../lib/prisma";
 
 // Failed passcode attempts tracker (IP -> { count, blockUntil })
 const failedAttemptsMap = new Map<string, { count: number; blockUntil: number }>();
+
+/**
+ * Helper to record failed login attempts
+ */
+const recordFailedAttempt = (ip: string, res: Response) => {
+  const now = Date.now();
+  const currentAttempts = failedAttemptsMap.get(ip) || { count: 0, blockUntil: 0 };
+  
+  const newCount = currentAttempts.count + 1;
+  let blockUntil = 0;
+  
+  if (newCount >= 5) {
+    blockUntil = now + 5 * 60 * 1000; // Block for 5 minutes
+    console.warn(`[Firewall] Locked out IP: ${ip} from login for 5 minutes (5 consecutive failures).`);
+  }
+  
+  failedAttemptsMap.set(ip, {
+    count: newCount >= 5 ? 0 : newCount,
+    blockUntil: blockUntil || currentAttempts.blockUntil
+  });
+
+  return res.status(401).json({ error: "Unauthorized. Invalid login credentials." });
+};
 
 /**
  * Brute force lockout firewall check specifically for login requests
@@ -26,58 +52,112 @@ export const loginFirewall = (req: Request, res: Response, next: NextFunction): 
 };
 
 /**
- * Handle admin passcode validation and issue secure JWT tokens
+ * Handle admin validation (passcode or email/password) and issue dual access/refresh tokens
  */
 export const login = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   const ip = req.ip || req.connection?.remoteAddress || "unknown";
   try {
-    const { passcode } = req.body;
-    const expected = process.env.ADMIN_PASSCODE;
-    if (!expected) {
-      console.error("[FATAL] ADMIN_PASSCODE environment variable is not configured!");
-      return res.status(500).json({ error: "Server misconfiguration. Contact administrator." });
-    }
+    const { passcode, email, password } = req.body;
+    let targetUser: any = null;
 
-    if (passcode !== expected) {
-      const now = Date.now();
-      const currentAttempts = failedAttemptsMap.get(ip) || { count: 0, blockUntil: 0 };
-      
-      const newCount = currentAttempts.count + 1;
-      let blockUntil = 0;
-      
-      if (newCount >= 5) {
-        blockUntil = now + 5 * 60 * 1000; // Block for 5 minutes
-        console.warn(`[Firewall] Locked out IP: ${ip} from login for 5 minutes (5 consecutive failures).`);
+    if (passcode) {
+      // 1. Passcode-based login (legacy & backward-compatible with frontend)
+      const expected = process.env.ADMIN_PASSCODE;
+      if (!expected) {
+        console.error("[FATAL] ADMIN_PASSCODE environment variable is not configured!");
+        return res.status(500).json({ error: "Server misconfiguration. Contact administrator." });
       }
-      
-      failedAttemptsMap.set(ip, {
-        count: newCount >= 5 ? 0 : newCount,
-        blockUntil: blockUntil || currentAttempts.blockUntil
+
+      if (passcode !== expected) {
+        return recordFailedAttempt(ip, res);
+      }
+
+      // Fetch or seed default admin user
+      targetUser = await prisma.user.findUnique({
+        where: { email: "admin@topuppay.com" }
       });
 
-      return res.status(401).json({ error: "Unauthorized. Invalid admin passcode." });
+      if (!targetUser) {
+        targetUser = await prisma.user.create({
+          data: {
+            email: "admin@topuppay.com",
+            name: "System Admin",
+            role: Role.ADMIN,
+          }
+        });
+      }
+    } else if (email && password) {
+      // 2. Credentials-based login
+      targetUser = await prisma.user.findUnique({
+        where: { email }
+      });
+
+      if (!targetUser || !targetUser.passwordHash) {
+        return recordFailedAttempt(ip, res);
+      }
+
+      const isValid = await authService.verifyPassword(password, targetUser.passwordHash);
+      if (!isValid) {
+        return recordFailedAttempt(ip, res);
+      }
+
+      if (targetUser.role !== Role.ADMIN && targetUser.role !== Role.STAFF) {
+        return res.status(403).json({ error: "Forbidden. Access restricted." });
+      }
+    } else {
+      return res.status(400).json({ error: "Missing credentials parameters. Provide passcode or email/password." });
     }
 
     // Success: Clear failed attempts
     failedAttemptsMap.delete(ip);
 
-    // Sign token
-    const secret = process.env.JWT_SECRET;
-    if (!secret) {
-      throw new Error("JWT_SECRET environment variable is not configured!");
-    }
-    const expiresIn = process.env.JWT_EXPIRES_IN || "1d";
-    const token = jwt.sign(
-      { role: "admin" },
-      secret,
-      {
-        expiresIn: expiresIn as any,
-        issuer: "gamex-cambodia-api",
-        audience: "gamex-cambodia-admin",
-      }
-    );
+    // Generate tokens
+    const tokens = authService.generateTokens({
+      userId: targetUser.id,
+      role: targetUser.role,
+      email: targetUser.email || undefined
+    });
 
-    res.json({ success: true, token });
+    // Save refresh token in DB
+    await authService.storeRefreshToken(targetUser.id, tokens.refreshToken);
+
+    res.json({
+      success: true,
+      token: tokens.accessToken,
+      refreshToken: tokens.refreshToken
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Handle JWT access token refreshes
+ */
+export const refresh = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) {
+      return res.status(400).json({ error: "Missing refresh token." });
+    }
+
+    const result = await authService.refreshAccessToken(refreshToken);
+    res.json(result);
+  } catch (error: any) {
+    res.status(401).json({ error: error.message || "Invalid refresh token." });
+  }
+};
+
+/**
+ * Handle admin logouts by revoking refresh tokens
+ */
+export const logout = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+  try {
+    const { refreshToken } = req.body;
+    if (refreshToken) {
+      await authService.revokeRefreshToken(refreshToken);
+    }
+    res.json({ success: true });
   } catch (error) {
     next(error);
   }

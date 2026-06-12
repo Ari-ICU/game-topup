@@ -6,6 +6,8 @@ import crypto from "crypto";
 import https from "https";
 import { URL } from "url";
 import { notifyTransactionStatus } from "../utils/telegram";
+import { Decimal } from "decimal.js";
+import { fulfillmentQueue } from "../lib/queue";
 
 interface CreateTransactionInput {
   packageId: string;
@@ -33,8 +35,8 @@ interface BakongWebhookPayload {
 /**
  * Validate a promo code
  */
-export const validatePromoCode = async (code: string, packageId: string) => {
-  const promo = await prisma.promoCode.findUnique({
+export const validatePromoCode = async (code: string, packageId: string, tx: any = prisma) => {
+  const promo = await tx.promoCode.findUnique({
     where: { code: code.toUpperCase() }
   });
 
@@ -46,7 +48,7 @@ export const validatePromoCode = async (code: string, packageId: string) => {
     throw new Error("Promo code limit reached");
   }
 
-  const pkg = await prisma.package.findUnique({
+  const pkg = await tx.package.findUnique({
     where: { id: packageId }
   });
 
@@ -59,101 +61,110 @@ export const validatePromoCode = async (code: string, packageId: string) => {
     throw new Error("Promo code is not valid for this game");
   }
 
-  const discountAmount = Number((pkg.price * promo.discount).toFixed(2));
-  const finalPrice = Math.max(0, Number((pkg.price - discountAmount).toFixed(2)));
+  // Use Decimal for exact money handling
+  const priceDec = new Decimal(pkg.price);
+  const discountDec = new Decimal(promo.discount);
+  const discountAmount = priceDec.mul(discountDec).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+  const finalPrice = Decimal.max(0, priceDec.minus(discountAmount)).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
 
   return {
     valid: true,
     code: promo.code,
     discountPercentage: promo.discount * 100,
-    discountAmount,
-    finalPrice
+    discountAmount: discountAmount.toNumber(),
+    finalPrice: finalPrice.toNumber()
   };
 };
 
 export const createNewTransaction = async (data: CreateTransactionInput) => {
-  // Fetch package details to get current price
-  const pkg = await prisma.package.findUnique({
-    where: { id: data.packageId },
-  });
+  // Run everything inside an atomic database transaction
+  return await prisma.$transaction(async (tx) => {
+    // Fetch package details to get current price
+    const pkg = await tx.package.findUnique({
+      where: { id: data.packageId },
+    });
 
-  if (!pkg) {
-    throw new Error("Package not found");
-  }
+    if (!pkg) {
+      throw new Error("Package not found");
+    }
 
-  let promoDiscountAmount = 0;
-  let promoCodeUsed: string | null = null;
-  if (data.promoCode) {
-    try {
-      const val = await validatePromoCode(data.promoCode, data.packageId);
-      promoDiscountAmount = val.discountAmount;
-      promoCodeUsed = val.code;
-      // Increment use count
-      await prisma.promoCode.update({
-        where: { code: val.code },
-        data: { useCount: { increment: 1 } }
+    const priceDec = new Decimal(pkg.price);
+    let promoDiscountDec = new Decimal(0);
+    let promoCodeUsed: string | null = null;
+    
+    if (data.promoCode) {
+      try {
+        const val = await validatePromoCode(data.promoCode, data.packageId, tx);
+        promoDiscountDec = new Decimal(val.discountAmount);
+        promoCodeUsed = val.code;
+        // Increment use count safely inside transaction
+        await tx.promoCode.update({
+          where: { code: val.code },
+          data: { useCount: { increment: 1 } }
+        });
+      } catch (err: any) {
+        throw new Error(err.message || "Invalid promo code");
+      }
+    }
+
+    let vipDiscountDec = new Decimal(0);
+    if (data.vipDiscountPercentage) {
+      vipDiscountDec = priceDec.mul(new Decimal(data.vipDiscountPercentage).div(100)).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+    }
+
+    const finalTotalDec = Decimal.max(0, priceDec.minus(promoDiscountDec).minus(vipDiscountDec)).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+    const finalTotal = finalTotalDec.toNumber();
+
+    // 1. Create transaction in database first
+    const transaction = await tx.transaction.create({
+      data: {
+        packageId: data.packageId,
+        userId: data.userId || null,
+        status: TransactionStatus.PENDING,
+        paymentMethod: data.paymentMethod,
+        playerInfo: data.playerInfo,
+        totalAmount: finalTotal,
+        promoCodeUsed,
+        discountAmount: promoDiscountDec.toNumber(),
+        vipDiscountAmount: vipDiscountDec.toNumber(),
+        qrCode: null,
+      },
+    });
+
+    let qrCode: string | null = null;
+    // 2. Generate KHQR if payment method is KHQR using the transaction's database ID as billNumber
+    if (data.paymentMethod === "KHQR") {
+      // Query active merchant settings from DB
+      const settings = await tx.khqrSettings.findFirst({
+        where: { isActive: true },
+        orderBy: { updatedAt: "desc" },
       });
-    } catch (err: any) {
-      throw new Error(err.message || "Invalid promo code");
+
+      const generated = generateKhqrCode({
+        token: data.token,
+        accountId: settings?.accountId || data.accountId,
+        merchantName: settings?.merchantName,
+        merchantCity: settings?.merchantCity,
+        amount: finalTotal,
+        billNumber: transaction.id, // Use the real transaction ID as bill number!
+      });
+      if (generated) {
+        qrCode = generated;
+      }
     }
-  }
 
-  let vipDiscountAmount = 0;
-  if (data.vipDiscountPercentage) {
-    vipDiscountAmount = Number((pkg.price * (data.vipDiscountPercentage / 100)).toFixed(2));
-  }
-
-  const finalTotal = Math.max(0, Number((pkg.price - promoDiscountAmount - vipDiscountAmount).toFixed(2)));
-
-  // 1. Create transaction in database first
-  const transaction = await prisma.transaction.create({
-    data: {
-      packageId: data.packageId,
-      userId: data.userId || null,
-      status: TransactionStatus.PENDING,
-      paymentMethod: data.paymentMethod,
-      playerInfo: data.playerInfo,
-      totalAmount: finalTotal,
-      promoCodeUsed,
-      discountAmount: promoDiscountAmount,
-      vipDiscountAmount,
-      qrCode: null,
-    },
-  });
-
-  let qrCode: string | null = null;
-  // 2. Generate KHQR if payment method is KHQR using the transaction's database ID as billNumber
-  if (data.paymentMethod === "KHQR") {
-    // Query active merchant settings from DB
-    const settings = await prisma.khqrSettings.findFirst({
-      where: { isActive: true },
-      orderBy: { updatedAt: "desc" },
-    });
-
-    const generated = generateKhqrCode({
-      token: data.token,
-      accountId: settings?.accountId || data.accountId,
-      merchantName: settings?.merchantName,
-      merchantCity: settings?.merchantCity,
-      amount: finalTotal,
-      billNumber: transaction.id, // Use the real transaction ID as bill number!
-    });
-    if (generated) {
-      qrCode = generated;
-    }
-  }
-
-  // Update transaction with the generated QR code (or keep null) and return with all inclusions
-  return await prisma.transaction.update({
-    where: { id: transaction.id },
-    data: { qrCode },
-    include: {
-      package: {
-        include: {
-          game: true,
+    // Update transaction with the generated QR code (or keep null) and return with all inclusions
+    return await tx.transaction.update({
+      where: { id: transaction.id },
+      data: { qrCode },
+      include: {
+        package: {
+          include: {
+            game: true,
+          },
         },
       },
-    },
+    });
   });
 };
 
@@ -272,8 +283,16 @@ export const getTransactionById = async (id: string) => {
         if (updatedResult.count > 0) {
           console.log(`[Bakong API] Payment confirmed for transaction ${transaction.id}. Updated status to COMPLETED.`);
           
-          // Trigger reseller API fulfillment
-          await fulfillOrder(transaction.id);
+          const transactionId = transaction.id;
+          // Enqueue BullMQ background job for async reseller API fulfillment
+          await fulfillmentQueue.add(
+            "fulfill",
+            { transactionId },
+            {
+              attempts: 3,
+              backoff: { type: "exponential", delay: 5000 },
+            }
+          ).catch((err) => console.error(`[BullMQ] Failed to queue job for tx ${transactionId}:`, err));
           
           // Refetch to get updated providerRef
           transaction = await prisma.transaction.findUnique({
@@ -339,8 +358,15 @@ export const simulatePaymentCompletion = async (id: string) => {
     },
   });
 
-  // Call the external reseller API to trigger fulfillment
-  await fulfillOrder(id);
+  // Enqueue BullMQ background job for async reseller API fulfillment
+  await fulfillmentQueue.add(
+    "fulfill",
+    { transactionId: id },
+    {
+      attempts: 3,
+      backoff: { type: "exponential", delay: 5000 },
+    }
+  ).catch((err) => console.error(`[BullMQ] Failed to queue simulation job for tx ${id}:`, err));
 
   const updated = await prisma.transaction.findUnique({
     where: { id },
@@ -501,7 +527,15 @@ export const processBakongWebhook = async (payload: BakongWebhookPayload) => {
   );
 
   if (newStatus === TransactionStatus.COMPLETED) {
-    await fulfillOrder(transaction.id);
+    // Enqueue BullMQ background job for async reseller API fulfillment
+    await fulfillmentQueue.add(
+      "fulfill",
+      { transactionId: transaction.id },
+      {
+        attempts: 3,
+        backoff: { type: "exponential", delay: 5000 },
+      }
+    ).catch((err) => console.error(`[BullMQ] Failed to queue webhook job for tx ${transaction.id}:`, err));
     const finishedTx = await prisma.transaction.findUnique({
       where: { id: transaction.id },
       include: {

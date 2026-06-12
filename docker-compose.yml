@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  # MongoDB database instance (configured as a single-node replica set for Transaction support)
+  mongodb:
+    image: mongo:6.0
+    container_name: topup_mongodb
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Script to automatically initiate the replica set upon mongo booting up
+  mongodb-setup:
+    image: mongo:6.0
+    container_name: topup_mongodb_setup
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    restart: on-failure
+    entrypoint: 
+      - "bash"
+      - "-c"
+      - "mongosh --host mongodb:27017 --eval 'rs.initiate({_id: \"rs0\", members: [{_id: 0, host: \"mongodb:27017\"}]})' || true"
+
+  # Redis cache instance for rate limiting and BullMQ job queues
+  redis:
+    image: redis:7-alpine
+    container_name: topup_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Express.js backend services
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: topup_backend
+    ports:
+      - "5001:5001"
+    environment:
+      - NODE_ENV=production
+      - PORT=5001
+      - DATABASE_URL=mongodb://mongodb:27017/topup?replicaSet=rs0
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=gamex-cambodia-super-secret-key-9-10
+      - ADMIN_PASSCODE=123456
+      - FRONTEND_URL=http://localhost:3000
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: always
+
+  # Next.js web application frontend portal
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: topup_frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://localhost:5001
+    depends_on:
+      - backend
+    restart: always
+
+volumes:
+  mongo_data:
+  redis_data:

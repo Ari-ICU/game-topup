@@ -1,0 +1,88 @@
+name: TopUpPay Integration CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  backend-ci:
+    name: Backend validation (Node & Jest)
+    runs-on: ubuntu-latest
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-dir: 'backend'
+        node-version: 20
+        cache: 'npm'
+        cache-dependency-path: 'backend/package-lock.json'
+
+    - name: Install Dependencies
+      run: |
+        cd backend
+        npm ci
+
+    - name: Run Prisma Client Generation
+      run: |
+        cd backend
+        npx prisma generate
+
+    - name: Run Tests (Jest)
+      run: |
+        cd backend
+        npm run test
+      env:
+        JWT_SECRET: testing-secret-key-for-github-actions
+        ADMIN_PASSCODE: 123456
+        DATABASE_URL: mongodb://localhost:27017/test-db
+        REDIS_URL: redis://localhost:6379
+
+    - name: Verify Backend Build compilation
+      run: |
+        cd backend
+        npm run build
+
+  frontend-ci:
+    name: Frontend validation (Next.js)
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-dir: 'frontend'
+        node-version: 20
+        cache: 'npm'
+        cache-dependency-path: 'frontend/package-lock.json'
+
+    - name: Install Dependencies
+      run: |
+        cd frontend
+        npm ci
+
+    - name: Verify Frontend Build
+      run: |
+        cd frontend
+        npm run build
+      env:
+        NEXT_PUBLIC_API_URL: http://localhost:5001
