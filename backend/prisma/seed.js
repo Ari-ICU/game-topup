@@ -1,6 +1,10 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
+const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const prisma = new client_1.PrismaClient();
 async function main() {
     console.log("🌱 Start seeding...");
@@ -8,13 +12,38 @@ async function main() {
     await prisma.transaction.deleteMany({});
     await prisma.package.deleteMany({});
     await prisma.game.deleteMany({});
+    await prisma.refreshToken.deleteMany({});
     await prisma.user.deleteMany({});
     console.log("Deleted existing database content.");
-    // Create mock user
+    // Create hashed passwords
+    const adminPasswordHash = await bcryptjs_1.default.hash("Admin@123", 10);
+    const staffPasswordHash = await bcryptjs_1.default.hash("Staff@123", 10);
+    // Create mock Admin
+    const adminUser = await prisma.user.create({
+        data: {
+            email: "admin@topuppay.com",
+            name: "System Admin",
+            passwordHash: adminPasswordHash,
+            role: client_1.Role.ADMIN,
+        },
+    });
+    console.log(`Created admin user: ${adminUser.name} (${adminUser.id})`);
+    // Create mock Staff
+    const staffUser = await prisma.user.create({
+        data: {
+            email: "staff@topuppay.com",
+            name: "Support Staff",
+            passwordHash: staffPasswordHash,
+            role: client_1.Role.STAFF,
+        },
+    });
+    console.log(`Created staff user: ${staffUser.name} (${staffUser.id})`);
+    // Create mock user (regular user for transactions)
     const mockUser = await prisma.user.create({
         data: {
             email: "gamer@example.com",
             name: "Pro Gamer",
+            role: client_1.Role.USER,
         },
     });
     console.log(`Created mock user: ${mockUser.name} (${mockUser.id})`);
@@ -25,12 +54,13 @@ async function main() {
             name: "Mobile Legends",
             iconUrl: "/images/mlbb.png",
             inputConfig: { playerId: "string", zoneId: "string" },
+            isHot: true,
             packages: [
-                { name: "86 Diamonds", amount: 86, price: 1.5, originalPrice: 1.8, providerSku: "ml-86" },
-                { name: "172 Diamonds", amount: 172, price: 3.0, originalPrice: 3.6, providerSku: "ml-172" },
-                { name: "257 Diamonds", amount: 257, price: 4.5, originalPrice: 5.4, providerSku: "ml-257" },
-                { name: "706 Diamonds", amount: 706, price: 12.0, originalPrice: 15.0, providerSku: "ml-706", bestValue: true },
-                { name: "2195 Diamonds", amount: 2195, price: 35.0, originalPrice: 42.0, providerSku: "ml-2195" },
+                { name: "86 Diamonds", amount: 86, price: 1.5, originalPrice: 1.8, providerSku: "smileone-MLBB-86", provider: client_1.Provider.SMILE_ONE },
+                { name: "172 Diamonds", amount: 172, price: 3.0, originalPrice: 3.6, providerSku: "smileone-MLBB-172", provider: client_1.Provider.SMILE_ONE },
+                { name: "257 Diamonds", amount: 257, price: 4.5, originalPrice: 5.4, providerSku: "smileone-MLBB-257", provider: client_1.Provider.SMILE_ONE },
+                { name: "706 Diamonds", amount: 706, price: 12.0, originalPrice: 15.0, providerSku: "smileone-MLBB-706", bestValue: true, provider: client_1.Provider.SMILE_ONE },
+                { name: "2195 Diamonds", amount: 2195, price: 35.0, originalPrice: 42.0, providerSku: "smileone-MLBB-2195", provider: client_1.Provider.SMILE_ONE },
             ],
         },
         {
@@ -38,12 +68,13 @@ async function main() {
             name: "PUBG Mobile",
             iconUrl: "/images/pubg.png",
             inputConfig: { playerId: "string" },
+            isHot: false,
             packages: [
-                { name: "60 UC", amount: 60, price: 1.0, originalPrice: 1.2, providerSku: "pubg-60" },
-                { name: "325 UC", amount: 325, price: 5.0, originalPrice: 6.0, providerSku: "pubg-325" },
-                { name: "660 UC", amount: 660, price: 10.0, originalPrice: 12.0, providerSku: "pubg-660", bestValue: true },
-                { name: "1800 UC", amount: 1800, price: 25.0, originalPrice: 30.0, providerSku: "pubg-1800" },
-                { name: "3850 UC", amount: 3850, price: 50.0, originalPrice: 60.0, providerSku: "pubg-3850" },
+                { name: "60 UC", amount: 60, price: 1.0, originalPrice: 1.2, providerSku: "unipin-PUBG-60", provider: client_1.Provider.UNIPIN },
+                { name: "325 UC", amount: 325, price: 5.0, originalPrice: 6.0, providerSku: "unipin-PUBG-325", provider: client_1.Provider.UNIPIN },
+                { name: "660 UC", amount: 660, price: 10.0, originalPrice: 12.0, providerSku: "unipin-PUBG-660", bestValue: true, provider: client_1.Provider.UNIPIN },
+                { name: "1800 UC", amount: 1800, price: 25.0, originalPrice: 30.0, providerSku: "unipin-PUBG-1800", provider: client_1.Provider.UNIPIN },
+                { name: "3850 UC", amount: 3850, price: 50.0, originalPrice: 60.0, providerSku: "unipin-PUBG-3850", provider: client_1.Provider.UNIPIN },
             ],
         },
         {
@@ -51,12 +82,13 @@ async function main() {
             name: "Garena Free Fire",
             iconUrl: "/images/free_fire.png",
             inputConfig: { playerId: "string" },
+            isHot: false,
             packages: [
-                { name: "100 Diamonds", amount: 100, price: 1.0, originalPrice: 1.2, providerSku: "ff-100" },
-                { name: "310 Diamonds", amount: 310, price: 3.0, originalPrice: 3.6, providerSku: "ff-310" },
-                { name: "520 Diamonds", amount: 520, price: 5.0, originalPrice: 6.0, providerSku: "ff-520", bestValue: true },
-                { name: "1060 Diamonds", amount: 1060, price: 10.0, originalPrice: 12.0, providerSku: "ff-1060" },
-                { name: "2180 Diamonds", amount: 2180, price: 20.0, originalPrice: 24.0, providerSku: "ff-2180" },
+                { name: "100 Diamonds", amount: 100, price: 1.0, originalPrice: 1.2, providerSku: "smileone-FF-100", provider: client_1.Provider.SMILE_ONE },
+                { name: "310 Diamonds", amount: 310, price: 3.0, originalPrice: 3.6, providerSku: "smileone-FF-310", provider: client_1.Provider.SMILE_ONE },
+                { name: "520 Diamonds", amount: 520, price: 5.0, originalPrice: 6.0, providerSku: "smileone-FF-520", bestValue: true, provider: client_1.Provider.SMILE_ONE },
+                { name: "1060 Diamonds", amount: 1060, price: 10.0, originalPrice: 12.0, providerSku: "smileone-FF-1060", provider: client_1.Provider.SMILE_ONE },
+                { name: "2180 Diamonds", amount: 2180, price: 20.0, originalPrice: 24.0, providerSku: "smileone-FF-2180", provider: client_1.Provider.SMILE_ONE },
             ],
         },
         {
@@ -64,11 +96,12 @@ async function main() {
             name: "Roblox",
             iconUrl: "/images/roblox.png",
             inputConfig: { username: "string" },
+            isHot: false,
             packages: [
-                { name: "400 Robux", amount: 400, price: 5.0, originalPrice: 6.0, providerSku: "rb-400" },
-                { name: "800 Robux", amount: 800, price: 10.0, originalPrice: 12.0, providerSku: "rb-800", bestValue: true },
-                { name: "1700 Robux", amount: 1700, price: 20.0, originalPrice: 24.0, providerSku: "rb-1700" },
-                { name: "4500 Robux", amount: 4500, price: 50.0, originalPrice: 60.0, providerSku: "rb-4500" },
+                { name: "400 Robux", amount: 400, price: 5.0, originalPrice: 6.0, providerSku: "topuplive-ROBLOX-400", provider: client_1.Provider.TOPUPLIVE },
+                { name: "800 Robux", amount: 800, price: 10.0, originalPrice: 12.0, providerSku: "topuplive-ROBLOX-800", bestValue: true, provider: client_1.Provider.TOPUPLIVE },
+                { name: "1700 Robux", amount: 1700, price: 20.0, originalPrice: 24.0, providerSku: "topuplive-ROBLOX-1700", provider: client_1.Provider.TOPUPLIVE },
+                { name: "4500 Robux", amount: 4500, price: 50.0, originalPrice: 60.0, providerSku: "topuplive-ROBLOX-4500", provider: client_1.Provider.TOPUPLIVE },
             ],
         },
     ];
@@ -79,6 +112,7 @@ async function main() {
                 name: gameData.name,
                 iconUrl: gameData.iconUrl,
                 inputConfig: gameData.inputConfig,
+                isHot: gameData.isHot,
                 packages: {
                     create: gameData.packages.map((pkg) => ({
                         name: pkg.name,
@@ -86,6 +120,7 @@ async function main() {
                         price: pkg.price,
                         originalPrice: pkg.originalPrice,
                         providerSku: pkg.providerSku,
+                        provider: pkg.provider,
                         bestValue: pkg.bestValue || false,
                     })),
                 },
