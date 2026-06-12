@@ -48,6 +48,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      network: host
     container_name: topup_backend
     ports:
       - "5001:5001"
@@ -71,6 +72,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      network: host
     container_name: topup_frontend
     ports:
       - "3000:3000"

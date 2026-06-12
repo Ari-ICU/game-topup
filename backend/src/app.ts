@@ -1,6 +1,4 @@
 import express, { Request, Response } from "express";
-import cors from "cors";
-import helmet from "helmet";
 import dotenv from "dotenv";
 import morgan from "morgan";
 import path from "path";
@@ -11,6 +9,7 @@ import webhookRoutes from "./routes/webhook.routes";
 import adminRoutes from "./routes/admin.routes";
 import { errorHandler } from "./middlewares/errorHandler";
 import logger from "./utils/logger";
+import { corsMiddleware } from "./middlewares/cors";
 
 dotenv.config();
 
@@ -36,16 +35,8 @@ if (process.env.NODE_ENV === "production") {
   }
 }
 
-// ─── Security headers (Helmet) ────────────────────────────────────────────────
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }, // allow image serving
-}));
-
 // ─── CORS ─────────────────────────────────────────────────────────────────────
-app.use(cors({
-  origin: process.env.FRONTEND_URL || "http://localhost:3000",
-  credentials: true,
-}));
+app.use(corsMiddleware);
 
 // ─── Body parsing ────────────────────────────────────────────────────────────
 // Tight global limit (10kb). Admin upload route uses its own 10mb limit.
