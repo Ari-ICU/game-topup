@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   const API_URL =
-    process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001";
+    process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001";
 
   try {
     const body = await request.json();

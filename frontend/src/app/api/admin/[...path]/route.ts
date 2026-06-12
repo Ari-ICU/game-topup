@@ -7,7 +7,7 @@ async function proxyRequest(
   search: string,
   body?: any
 ) {
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001";
+  const API_URL = process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001";
   const cookieStore = await cookies();
   let token = cookieStore.get("admin_token")?.value || "";
   const refreshToken = cookieStore.get("admin_refresh_token")?.value || "";
