@@ -19,6 +19,9 @@ import {
   ShieldCheck,
   Zap,
   Info,
+  Database,
+  Download,
+  UploadCloud,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -181,7 +184,7 @@ function ProviderSection({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function AdminSettings() {
-  const [activeTab, setActiveTab] = useState<"khqr" | "providers" | "promos">("khqr");
+  const [activeTab, setActiveTab] = useState<"khqr" | "providers" | "promos" | "backup">("khqr");
 
   const [settings, setSettings] = useState<KhqrSettingsObj>({
     id: "",
@@ -215,6 +218,74 @@ export default function AdminSettings() {
   const [games, setGames] = useState<any[]>([]);
   const [promoMessage, setPromoMessage] = useState("");
   const [promoError, setPromoError] = useState("");
+
+  const [importing, setImporting] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importMessage, setImportMessage] = useState("");
+  const [importError, setImportError] = useState("");
+
+  const handleExportBackup = async () => {
+    try {
+      const res = await fetch("/api/admin/backup/export");
+      if (!res.ok) throw new Error("Failed to export backup");
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `topuppay_backup_${Date.now()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      alert(err.message || "Failed to download backup");
+    }
+  };
+
+  const handleImportBackup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!importFile) return;
+
+    if (!window.confirm("WARNING: This will completely wipe all current transactions, games, packages, promo codes, and settings, and replace them with the data in the backup file. Are you absolutely sure?")) {
+      return;
+    }
+
+    setImporting(true);
+    setImportMessage("");
+    setImportError("");
+
+    try {
+      const text = await importFile.text();
+      let parsed;
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        throw new Error("Invalid JSON file format");
+      }
+
+      const res = await fetch("/api/admin/backup/import", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(parsed),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to import backup");
+      }
+
+      setImportMessage("Database backup imported and restored successfully!");
+      setImportFile(null);
+      fetchSettings();
+      fetchGames();
+    } catch (err: any) {
+      setImportError(err.message || "Import failed. Check file format.");
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const fetchSettings = async () => {
     setLoading(true);
@@ -394,6 +465,7 @@ export default function AdminSettings() {
     { id: "khqr" as const, label: "KHQR Merchant", icon: ShieldCheck },
     { id: "providers" as const, label: "API Providers", icon: Zap },
     { id: "promos" as const, label: "Promo Codes", icon: Ticket },
+    { id: "backup" as const, label: "Backup & Restore", icon: Database },
   ];
 
   return (
@@ -869,6 +941,107 @@ export default function AdminSettings() {
                 </table>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Backup & Restore Tab ────────────────────────────────────────────────── */}
+      {activeTab === "backup" && (
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+          <div className="xl:col-span-2 space-y-4">
+            {importMessage && <AlertBanner type="success" message={importMessage} />}
+            {importError && <AlertBanner type="error" message={importError} />}
+
+            {/* Export Card */}
+            <SectionCard title="Export Database Backup" subtitle="Download a copy of the database state" icon={Database}>
+              <div className="space-y-4 py-2">
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  Export all users, games, packages, promo codes, transactions, and settings into a single JSON backup file. This file can be used to restore the system state later.
+                </p>
+                <div className="flex justify-start pt-2">
+                  <button
+                    type="button"
+                    onClick={handleExportBackup}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-brand-cyan text-[#080b11] font-bold rounded-lg text-sm
+                      hover:brightness-110 active:scale-[0.98] transition-all cursor-pointer"
+                  >
+                    <Download className="w-4 h-4" />
+                    Export Backup (JSON)
+                  </button>
+                </div>
+              </div>
+            </SectionCard>
+
+            {/* Import Card */}
+            <form onSubmit={handleImportBackup}>
+              <SectionCard title="Import & Restore Database" subtitle="Restore database from a JSON backup file" icon={UploadCloud} accent="purple">
+                <div className="space-y-6">
+                  {/* Warning Box */}
+                  <div className="flex items-start gap-3 p-4 rounded-xl border border-red-500/20 bg-red-500/5 text-xs text-red-400 leading-relaxed font-semibold">
+                    <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-red-400" />
+                    <div>
+                      <p className="font-bold uppercase tracking-wider text-red-300">Irreversible Action Warning</p>
+                      <p className="mt-1 font-normal text-gray-400">
+                        Uploading a backup will completely wipe the existing database state. All games, pricing packages, active promo codes, active logs, and KHQR credentials will be permanently overwritten.
+                      </p>
+                    </div>
+                  </div>
+
+                  <Field label="Backup File (.json)">
+                    <div className="relative flex flex-col items-center justify-center border-2 border-dashed border-[#1e2840] hover:border-brand-purple/50 bg-[#080c15] hover:bg-brand-purple/5 rounded-xl p-8 transition-all duration-200 group">
+                      <input
+                        type="file"
+                        accept=".json"
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            setImportFile(e.target.files[0]);
+                          }
+                        }}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        disabled={importing}
+                      />
+                      <UploadCloud className="w-8 h-8 text-gray-500 group-hover:text-brand-purple transition-colors mb-3" />
+                      {importFile ? (
+                        <div className="text-center">
+                          <p className="text-sm font-bold text-white">{importFile.name}</p>
+                          <p className="text-xs text-gray-500 mt-1">{(importFile.size / 1024).toFixed(2)} KB</p>
+                        </div>
+                      ) : (
+                        <div className="text-center">
+                          <p className="text-sm font-semibold text-gray-300">Click to browse or drag backup file here</p>
+                          <p className="text-xs text-gray-500 mt-1">Only .json files exported from TopUpPay are supported</p>
+                        </div>
+                      )}
+                    </div>
+                  </Field>
+
+                  <div className="pt-2 flex justify-end">
+                    <button
+                      type="submit"
+                      disabled={importing || !importFile}
+                      className="flex items-center gap-2 px-5 py-2.5 bg-brand-purple text-white font-bold rounded-lg text-sm
+                        hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
+                    >
+                      {importing ? (
+                        <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <UploadCloud className="w-4 h-4" />
+                      )}
+                      {importing ? "Restoring Database..." : "Restore Backup"}
+                    </button>
+                  </div>
+                </div>
+              </SectionCard>
+            </form>
+          </div>
+
+          {/* Sidebar Info */}
+          <div className="space-y-4">
+            <SectionCard title="Backup Guidelines" icon={Info} accent="cyan">
+              <p className="text-xs text-gray-400 leading-relaxed">
+                Backups preserve the full database structure, including relations between games and packages. It is recommended to perform an export before making bulk pricing edits or migrating server environments.
+              </p>
+            </SectionCard>
           </div>
         </div>
       )}

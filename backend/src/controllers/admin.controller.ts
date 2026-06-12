@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import * as adminService from "../services/admin.service";
 import { retryFulfillOrder } from "../services/transaction.service";
 import jwt from "jsonwebtoken";
+import { z } from "zod";
 
 // Failed passcode attempts tracker (IP -> { count, blockUntil })
 const failedAttemptsMap = new Map<string, { count: number; blockUntil: number }>();
@@ -379,3 +380,50 @@ export const togglePromo = async (req: Request, res: Response, next: NextFunctio
     next(error);
   }
 };
+
+/**
+ * Validation schema for importing database backups
+ */
+export const importBackupSchema = z.object({
+  body: z.object({
+    version: z.string().min(1, "Backup version is required"),
+    data: z.object({
+      users: z.array(z.any()),
+      games: z.array(z.any()),
+      packages: z.array(z.any()),
+      transactions: z.array(z.any()),
+      khqrSettings: z.array(z.any()),
+      promoCodes: z.array(z.any()),
+    }),
+  }),
+});
+
+/**
+ * Handle exporting database records to a file download payload
+ */
+export const exportBackup = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const backup = await adminService.exportDatabaseBackup();
+    res.setHeader("Content-Type", "application/json");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=topuppay_backup_${Date.now()}.json`
+    );
+    res.json(backup);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Handle importing database state from a validated request payload
+ */
+export const importBackup = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await adminService.importDatabaseBackup(req.body);
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+

@@ -529,3 +529,116 @@ export const togglePromo = async (id: string, isActive: boolean) => {
     data: { isActive },
   });
 };
+
+/**
+ * Helper to parse string date fields in objects into Date instances
+ */
+const parseDates = (item: any, dateFields: string[]) => {
+  const cloned = { ...item };
+  for (const field of dateFields) {
+    if (cloned[field]) {
+      cloned[field] = new Date(cloned[field]);
+    }
+  }
+  return cloned;
+};
+
+/**
+ * Exports all database records as a unified JSON object
+ */
+export const exportDatabaseBackup = async () => {
+  const [users, games, packages, transactions, khqrSettings, promoCodes] = await Promise.all([
+    prisma.user.findMany(),
+    prisma.game.findMany(),
+    prisma.package.findMany(),
+    prisma.transaction.findMany(),
+    prisma.khqrSettings.findMany(),
+    prisma.promoCode.findMany()
+  ]);
+
+  return {
+    version: "1.0",
+    exportedAt: new Date().toISOString(),
+    data: {
+      users,
+      games,
+      packages,
+      transactions,
+      khqrSettings,
+      promoCodes
+    }
+  };
+};
+
+/**
+ * Replaces current database state with provided backup data within an atomic transaction
+ */
+export const importDatabaseBackup = async (backupJson: any) => {
+  if (!backupJson || backupJson.version !== "1.0" || !backupJson.data) {
+    throw new Error("Invalid backup format or version mismatch");
+  }
+
+  const { users, games, packages, transactions, khqrSettings, promoCodes } = backupJson.data;
+
+  if (
+    !Array.isArray(users) ||
+    !Array.isArray(games) ||
+    !Array.isArray(packages) ||
+    !Array.isArray(transactions) ||
+    !Array.isArray(khqrSettings) ||
+    !Array.isArray(promoCodes)
+  ) {
+    throw new Error("Missing collections in backup data");
+  }
+
+  // Execute database-wide replacement within transaction
+  await prisma.$transaction(async (tx) => {
+    // 1. Delete existing records in topological order (reverse relationship dependency)
+    await tx.transaction.deleteMany({});
+    await tx.promoCode.deleteMany({});
+    await tx.package.deleteMany({});
+    await tx.game.deleteMany({});
+    await tx.user.deleteMany({});
+    await tx.khqrSettings.deleteMany({});
+
+    // 2. Insert records sequentially in proper dependency order
+    if (users.length > 0) {
+      await tx.user.createMany({
+        data: users.map((u) => parseDates(u, ["createdAt"])),
+      });
+    }
+
+    if (games.length > 0) {
+      await tx.game.createMany({
+        data: games.map((g) => parseDates(g, ["createdAt"])),
+      });
+    }
+
+    if (packages.length > 0) {
+      await tx.package.createMany({
+        data: packages,
+      });
+    }
+
+    if (promoCodes.length > 0) {
+      await tx.promoCode.createMany({
+        data: promoCodes.map((p) => parseDates(p, ["createdAt"])),
+      });
+    }
+
+    if (transactions.length > 0) {
+      await tx.transaction.createMany({
+        data: transactions.map((t) => parseDates(t, ["createdAt", "updatedAt"])),
+      });
+    }
+
+    if (khqrSettings.length > 0) {
+      await tx.khqrSettings.createMany({
+        data: khqrSettings.map((s) => parseDates(s, ["updatedAt"])),
+      });
+    }
+  });
+
+  return { success: true, message: "Database state restored successfully" };
+};
+

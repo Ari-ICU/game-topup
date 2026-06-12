@@ -2,6 +2,7 @@ import { Router } from "express";
 import express from "express";
 import * as adminController from "../controllers/admin.controller";
 import { adminRateLimiter, adminAuth } from "../middlewares/adminAuth";
+import { validate } from "../middlewares/validation";
 
 const router = Router();
 
@@ -39,5 +40,14 @@ router.post("/transactions/:id/fulfill", adminController.fulfillTransaction);
 
 // Upload endpoint: override body limit to 10mb for base64 image uploads
 router.post("/upload", express.json({ limit: "10mb" }), adminController.uploadFile);
+
+// Database Backup and Restore
+router.get("/backup/export", adminController.exportBackup);
+router.post(
+  "/backup/import",
+  express.json({ limit: "15mb" }),
+  validate(adminController.importBackupSchema),
+  adminController.importBackup
+);
 
 export default router;
