@@ -18,10 +18,10 @@ interface GameCard {
 }
 
 const FALLBACK_GAMES: GameCard[] = [
-  { id: "1", name: "Mobile Legends", image: "/images/mlbb.png", isHot: true, slug: "mobile-legends", packageCount: 5 },
-  { id: "2", name: "PUBG Mobile", image: "/images/pubg.png", slug: "pubg-mobile", packageCount: 5 },
+  { id: "1", name: "Mobile Legends", image: "/images/mlbb.avif", isHot: true, slug: "mobile-legends", packageCount: 5 },
+  { id: "2", name: "PUBG Mobile", image: "/images/pubg.avif", slug: "pubg-mobile", packageCount: 5 },
   { id: "3", name: "Garena Free Fire", image: "/images/free_fire.png", slug: "free-fire", packageCount: 5 },
-  { id: "4", name: "Roblox", image: "/images/roblox.png", slug: "roblox", packageCount: 4 },
+  { id: "4", name: "Roblox", image: "/images/roblox.jpg", slug: "roblox", packageCount: 4 },
 ];
 
 const containerVariants: Variants = {

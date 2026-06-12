@@ -56,7 +56,7 @@ async function main() {
     {
       slug: "mobile-legends",
       name: "Mobile Legends",
-      iconUrl: "/images/mlbb.png",
+      iconUrl: "/images/mlbb.avif",
       inputConfig: { playerId: "string", zoneId: "string" },
       isHot: true,
       packages: [
@@ -70,7 +70,7 @@ async function main() {
     {
       slug: "pubg-mobile",
       name: "PUBG Mobile",
-      iconUrl: "/images/pubg.png",
+      iconUrl: "/images/pubg.avif",
       inputConfig: { playerId: "string" },
       isHot: false,
       packages: [
@@ -98,7 +98,7 @@ async function main() {
     {
       slug: "roblox",
       name: "Roblox",
-      iconUrl: "/images/roblox.png",
+      iconUrl: "/images/roblox.jpg",
       inputConfig: { username: "string" },
       isHot: false,
       packages: [

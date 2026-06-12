@@ -25,14 +25,14 @@ const allGames: GameCard[] = [
   {
     id: "1",
     name: "Mobile Legends",
-    image: "/images/mlbb.png",
+    image: "/images/mlbb.avif",
     isHot: true,
     slug: "mobile-legends",
   },
   {
     id: "2",
     name: "PUBG Mobile",
-    image: "/images/pubg.png",
+    image: "/images/pubg.avif",
     slug: "pubg-mobile",
   },
   {
@@ -44,7 +44,7 @@ const allGames: GameCard[] = [
   {
     id: "4",
     name: "Roblox",
-    image: "/images/roblox.png",
+    image: "/images/roblox.jpg",
     slug: "roblox",
   },
 ];

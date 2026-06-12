@@ -49,7 +49,7 @@ interface GameDetail {
 const gameDatabase: Record<string, GameDetail> = {
   "mobile-legends": {
     name: "Mobile Legends",
-    image: "/images/mlbb.png",
+    image: "/images/mlbb.avif",
     slug: "mobile-legends",
     idType: "User ID",
     hasZoneId: true,
@@ -63,7 +63,7 @@ const gameDatabase: Record<string, GameDetail> = {
   },
   "pubg-mobile": {
     name: "PUBG Mobile",
-    image: "/images/pubg.png",
+    image: "/images/pubg.avif",
     slug: "pubg-mobile",
     idType: "Character ID",
     packages: [
@@ -89,7 +89,7 @@ const gameDatabase: Record<string, GameDetail> = {
   },
   "roblox": {
     name: "Roblox",
-    image: "/images/roblox.png",
+    image: "/images/roblox.jpg",
     slug: "roblox",
     idType: "Roblox Username",
     packages: [
